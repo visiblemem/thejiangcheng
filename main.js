@@ -1,4 +1,72 @@
-const reveals=[...document.querySelectorAll('.reveal')];const observer=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.12});reveals.forEach(el=>observer.observe(el));
-const toggle=document.querySelector('.index-toggle');const panel=document.querySelector('#index-panel');function closeIndex(){panel.classList.remove('open');panel.setAttribute('aria-hidden','true');toggle.setAttribute('aria-expanded','false');toggle.textContent='＋'}toggle.addEventListener('click',()=>{const open=!panel.classList.contains('open');panel.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'×':'＋'});panel.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeIndex));
-const c=document.querySelector('#scene');const ctx=c.getContext('2d');let pts=[];function resize(){c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);pts=Array.from({length:innerWidth<768?120:240},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*1+.2,s:Math.random()*.12+.02}))}resize();addEventListener('resize',resize);let mx=0,my=0;addEventListener('pointermove',e=>{mx=(e.clientX/innerWidth-.5)*10;my=(e.clientY/innerHeight-.5)*10});function draw(){ctx.clearRect(0,0,innerWidth,innerHeight);const fade=Math.max(.08,.35-scrollY/Math.max(document.body.scrollHeight-innerHeight,1)*.2);ctx.fillStyle=`rgba(198,187,169,${fade})`;for(const p of pts){p.y-=p.s;if(p.y<0)p.y=innerHeight;ctx.beginPath();ctx.arc(p.x+mx*.05,p.y+my*.05,p.r,0,Math.PI*2);ctx.fill()}requestAnimationFrame(draw)}draw();
-const copy={'zh-tw':{hero_title:'有些人留下作品。<br/>有些作品，留下了一個人。',hero_sub:'我不存在，但我留下的東西是真的。',world_title:'不是瀏覽作品。<br/>是慢慢認識一個人。',chapter_intro:'一個人久了，很多事情不是習慣了，是懶得再解釋。',writing_title:'有些東西不是一定要有人陪，才算完整。',writing_body:'真正難的，從來不是一個人吃飯、一個人走路，而是當安靜變成日常以後，你還願不願意對自己誠實。',objects_title:'他留下的東西',object_1:'我不喜歡它剛做好的樣子。二十年後比較好。',object_2:'好的光，不需要讓你一直注意它。',object_3:'有些書不是用來讀完，是用來留下。',about_body:'Jiang Cheng（蔣誠）是一位虛擬文化人物與創作者，創作涵蓋音樂、影像、寫作與數位藝術。'},'zh-cn':{hero_title:'有些人留下作品。<br/>有些作品，留下了一个人。',hero_sub:'我不存在，但我留下的东西是真的。',world_title:'不是浏览作品。<br/>是慢慢认识一个人。',chapter_intro:'一个人久了，很多事情不是习惯了，是懒得再解释。',writing_title:'有些东西不是一定要有人陪，才算完整。',writing_body:'真正难的，从来不是一个人吃饭、一个人走路，而是当安静变成日常以后，你还愿不愿意对自己诚实。',objects_title:'他留下的东西',object_1:'我不喜欢它刚做好的样子。二十年后比较好。',object_2:'好的光，不需要让你一直注意它。',object_3:'有些书不是用来读完，是用来留下。',about_body:'Jiang Cheng（蒋诚）是一位虚拟文化人物与创作者，创作涵盖音乐、影像、写作与数字艺术。'},en:{hero_title:'Some people leave works behind.<br/>Some works leave a person behind.',hero_sub:'I do not exist. What I leave behind does.',world_title:'Not a portfolio.<br/>A way of slowly knowing someone.',chapter_intro:'After enough time alone, some things are not habits. They are simply no longer worth explaining.',writing_title:'Some things do not need company to feel complete.',writing_body:'The difficult part is not eating or walking alone. It is whether, once silence becomes ordinary, you are still willing to be honest with yourself.',objects_title:'Things he keeps',object_1:'I never liked it when it was new. Twenty years later is better.',object_2:'Good light does not keep asking to be noticed.',object_3:'Some books are not meant to be finished. They are meant to remain.',about_body:'Jiang Cheng is a virtual cultural character and creator working across music, film, writing and digital art.'}};function applyLang(lang){const d=copy[lang]||copy['zh-tw'];document.documentElement.lang=lang==='en'?'en':lang==='zh-cn'?'zh-Hans':'zh-Hant';document.querySelectorAll('[data-i18n]').forEach(el=>{if(d[el.dataset.i18n])el.innerHTML=d[el.dataset.i18n]});document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));localStorage.setItem('jc-lang',lang)}const saved=localStorage.getItem('jc-lang');const nav=(navigator.languages?.[0]||navigator.language||'').toLowerCase();const inferred=nav.includes('zh-cn')||nav.includes('zh-hans')?'zh-cn':nav.startsWith('en')?'en':'zh-tw';applyLang(saved||inferred);document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
+const reveals=[...document.querySelectorAll('.reveal')];
+const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting)entry.target.classList.add('visible')}),{threshold:.12,rootMargin:'0px 0px -5% 0px'});
+reveals.forEach(el=>observer.observe(el));
+
+const toggle=document.querySelector('.index-toggle');
+const panel=document.querySelector('#index-panel');
+function closeIndex(){panel.classList.remove('open');panel.setAttribute('aria-hidden','true');toggle.setAttribute('aria-expanded','false');toggle.textContent='INDEX'}
+toggle.addEventListener('click',()=>{const open=!panel.classList.contains('open');panel.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'CLOSE':'INDEX'});
+panel.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeIndex));
+addEventListener('keydown',e=>{if(e.key==='Escape')closeIndex()});
+
+const light=document.querySelector('.cursor-light');
+if(light&&matchMedia('(pointer:fine)').matches){
+  let x=innerWidth*.72,y=innerHeight*.25,tx=x,ty=y;
+  addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY});
+  const follow=()=>{x+=(tx-x)*.055;y+=(ty-y)*.055;light.style.left=x+'px';light.style.top=y+'px';requestAnimationFrame(follow)};
+  follow();
+}
+
+const copy={
+'zh-tw':{
+hero_title:'虛構的人，<br>收藏真實。',
+hero_sub:'Film, music, writing — and the things worth keeping.',
+manifesto:'如果一個人不存在，<br>他的選擇還能不能留下品味？',
+manifesto_note:'這裡沒有履歷。先看他留下了什麼。',
+film_desc:'一部關於獨處不是缺少，而是一種選擇的短片。',
+music_desc:'有些帳不是算不清，是算清楚以後，反而不知道該怎麼辦。',
+writing_heading:'有些話，<br>適合慢一點讀。',
+object_quote:'「我不喜歡它剛做好的樣子。<br>二十年後比較好。」',
+object_body:'留下來的理由，往往比價格更能說明一個人的品味。',
+about_body:'蔣誠是一位虛擬文化人物。創作橫跨影像、音樂與寫作。比起回答他是不是「真的」，這個計畫更在意：一個不存在的人，能不能形成真正的觀點、品味與作品。',
+closing:'你現在知道的，<br>仍然只是其中一部分。'
+},
+'zh-cn':{
+hero_title:'虚构的人，<br>收藏真实。',
+hero_sub:'Film, music, writing — and the things worth keeping.',
+manifesto:'如果一个人不存在，<br>他的选择还能不能留下品味？',
+manifesto_note:'这里没有履历。先看他留下了什么。',
+film_desc:'一部关于独处不是缺少，而是一种选择的短片。',
+music_desc:'有些账不是算不清，是算清楚以后，反而不知道该怎么办。',
+writing_heading:'有些话，<br>适合慢一点读。',
+object_quote:'「我不喜欢它刚做好的样子。<br>二十年后比较好。」',
+object_body:'留下来的理由，往往比价格更能说明一个人的品味。',
+about_body:'蒋诚是一位虚拟文化人物。创作横跨影像、音乐与写作。比起回答他是不是“真的”，这个计划更在意：一个不存在的人，能不能形成真正的观点、品味与作品。',
+closing:'你现在知道的，<br>仍然只是其中一部分。'
+},
+en:{
+hero_title:'Fictional by nature.<br>Real in what remains.',
+hero_sub:'Film, music, writing — and the things worth keeping.',
+manifesto:'If a person does not exist,<br>can his choices still reveal taste?',
+manifesto_note:'No biography yet. First, see what he chose to leave behind.',
+film_desc:'A short film about solitude — not as absence, but as a choice.',
+music_desc:'Some accounts are not difficult to settle. The difficulty starts once they are settled.',
+writing_heading:'Some words<br>deserve to be read slowly.',
+object_quote:'“I never liked it when it was new.<br>Twenty years later is better.”',
+object_body:'Why something is kept often says more about taste than what it costs.',
+about_body:'Jiang Cheng is a virtual cultural character working across film, music and writing. Rather than asking whether he is “real,” the project asks whether someone who does not exist can still develop a real point of view, taste and body of work.',
+closing:'What you know now<br>is still only a fragment.'
+}}
+
+function applyLang(lang){
+  const d=copy[lang]||copy['zh-tw'];
+  document.documentElement.lang=lang==='en'?'en':lang==='zh-cn'?'zh-Hans':'zh-Hant';
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const value=d[el.dataset.i18n];if(value)el.innerHTML=value});
+  document.querySelectorAll('.lang button').forEach(b=>b.classList.toggle('active',b.dataset.lang===lang));
+  localStorage.setItem('jc-lang',lang);
+}
+const saved=localStorage.getItem('jc-lang');
+const nav=(navigator.languages?.[0]||navigator.language||'').toLowerCase();
+const inferred=nav.includes('zh-cn')||nav.includes('zh-hans')?'zh-cn':nav.startsWith('en')?'en':'zh-tw';
+applyLang(saved||inferred);
+document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
