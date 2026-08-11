@@ -70,3 +70,30 @@ const nav=(navigator.languages?.[0]||navigator.language||'').toLowerCase();
 const inferred=nav.includes('zh-cn')||nav.includes('zh-hans')?'zh-cn':nav.startsWith('en')?'en':'zh-tw';
 applyLang(saved||inferred);
 document.querySelectorAll('.lang button').forEach(b=>b.addEventListener('click',()=>applyLang(b.dataset.lang)));
+
+async function loadEmbedded(paths,mime){
+  const chunks=await Promise.all(paths.map(p=>fetch(p).then(r=>{if(!r.ok)throw new Error(p);return r.text()})));
+  return `data:${mime};base64,${chunks.join('').replace(/\s/g,'')}`;
+}
+
+(async()=>{
+  try{
+    const cover=await loadEmbedded(['./embedded/cover.00.txt','./embedded/cover.01.txt'],'image/webp');
+    const portrait=document.querySelector('.opening-portrait');
+    portrait.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.03),rgba(0,0,0,.08)),url(${cover})`;
+    portrait.style.backgroundSize='cover';
+    portrait.style.backgroundPosition='center center';
+    portrait.querySelector('.portrait-mark')?.remove();
+    portrait.style.filter='grayscale(1) contrast(1.04)';
+    portrait.animate([{transform:'scale(1.025)'},{transform:'scale(1)'}],{duration:9000,iterations:Infinity,direction:'alternate',easing:'ease-in-out'});
+
+    const frame=await loadEmbedded(['./embedded/frame-01.txt'],'image/webp');
+    const media=document.querySelector('.feature-media');
+    media.style.backgroundImage=`linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.24)),url(${frame})`;
+    media.style.backgroundSize='cover';
+    media.style.backgroundPosition='center';
+    media.querySelector('.media-title')?.remove();
+    const play=media.querySelector('.play-large');
+    if(play) play.textContent='WATCH TEASER';
+  }catch(err){console.warn('Preview assets not loaded',err)}
+})();
