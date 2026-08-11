@@ -2,144 +2,51 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Jiang Cheng 蔣誠 — virtual cultural character working across film, music and writing." />
-  <meta name="theme-color" content="#e9e5dc" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description" content="Jiang Cheng 蔣誠 — film, music, writing and virtual identity." />
   <title>Jiang Cheng — 蔣誠</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body>
+<body class="home-page">
   <div class="grain" aria-hidden="true"></div>
-  <div class="cursor-light" aria-hidden="true"></div>
-
-  <header class="site-header">
-    <a class="wordmark" href="#top">蔣誠 <span>JIANG CHENG</span></a>
-    <div class="header-right">
-      <nav class="lang" aria-label="Language">
-        <button data-lang="zh-tw" class="active">繁</button>
-        <button data-lang="zh-cn">简</button>
-        <button data-lang="en">EN</button>
-      </nav>
-      <button class="index-toggle" aria-expanded="false" aria-controls="index-panel">INDEX</button>
-    </div>
+  <header class="nav-shell">
+    <a class="logo" href="./">JIANG CHENG <small>蔣誠</small></a>
+    <nav class="desktop-nav">
+      <a data-preview="FILM" href="./film/">FILM</a>
+      <a data-preview="MUSIC" href="./music/">MUSIC</a>
+      <a data-preview="WRITING" href="./writing/">WRITING</a>
+      <a data-preview="ABOUT" href="./about/">ABOUT</a>
+    </nav>
+    <button class="menu-btn" type="button">MENU</button>
   </header>
 
-  <aside id="index-panel" class="index-panel" aria-hidden="true">
-    <div class="index-top"><span>JIANG CHENG / ARCHIVE</span><span>2026—</span></div>
-    <nav class="index-nav">
-      <a href="#selected"><b>01</b><span>Selected Work</span><em>作品</em></a>
-      <a href="#film"><b>02</b><span>Film</span><em>影像</em></a>
-      <a href="#music"><b>03</b><span>Music</span><em>音樂</em></a>
-      <a href="#writing"><b>04</b><span>Writing</span><em>文字</em></a>
-      <a href="#objects"><b>05</b><span>Objects</span><em>收藏</em></a>
-      <a href="#about"><b>06</b><span>About</span><em>關於</em></a>
-    </nav>
-    <div class="index-bottom">A VIRTUAL CULTURAL CHARACTER</div>
-  </aside>
-
-  <main id="top">
-    <section class="opening">
-      <div class="opening-number">001</div>
-      <div class="opening-copy reveal">
-        <p class="kicker">JIANG CHENG / 2026</p>
-        <h1 data-i18n="hero_title">虛構的人，<br>收藏真實。</h1>
-        <p class="opening-note" data-i18n="hero_sub">Film, music, writing — and the things worth keeping.</p>
-      </div>
-      <div class="opening-portrait" aria-label="Portrait placeholder">
-        <div class="portrait-label">PORTRAIT / 01</div>
-        <div class="portrait-mark">JC</div>
-      </div>
-      <a class="down" href="#manifesto"><span>SCROLL TO ENTER</span><i></i></a>
-    </section>
-
-    <section id="manifesto" class="manifesto">
-      <div class="manifesto-index">Ⅰ</div>
-      <div class="manifesto-copy reveal">
-        <p class="section-label">A PERSON THAT DOES NOT EXIST</p>
-        <p class="statement" data-i18n="manifesto">如果一個人不存在，<br>他的選擇還能不能留下品味？</p>
-      </div>
-      <p class="side-note reveal" data-i18n="manifesto_note">這裡沒有履歷。先看他留下了什麼。</p>
-    </section>
-
-    <section id="selected" class="selected">
-      <header class="section-head reveal">
-        <span>01</span><p>SELECTED WORK / 精選作品</p><small>2026</small>
-      </header>
-
-      <article id="film" class="feature feature-film reveal">
-        <div class="feature-media media-black">
-          <div class="media-corner">FILM / 04:18</div>
-          <button class="play-large" aria-label="Play film">PLAY</button>
-          <div class="media-title">FILM STILL</div>
-        </div>
-        <div class="feature-info">
-          <div><p class="micro">FILM · MUSIC · 2026</p><h2>一個人也沒不行</h2></div>
-          <p data-i18n="film_desc">一部關於獨處不是缺少，而是一種選擇的短片。</p>
-        </div>
-      </article>
-
-      <article id="music" class="feature feature-music reveal">
-        <div class="album-object">
-          <div class="album-cover"><span>JC</span><small>002 / 2026</small></div>
-          <div class="album-shadow"></div>
-        </div>
-        <div class="music-copy">
-          <p class="micro">MUSIC / SINGLE 02</p>
-          <h2>不算就被清算</h2>
-          <p data-i18n="music_desc">有些帳不是算不清，是算清楚以後，反而不知道該怎麼辦。</p>
-          <div class="player"><button class="player-play">▶</button><div class="player-line"><i></i></div><time>03:47</time></div>
-        </div>
-      </article>
-    </section>
-
-    <section id="writing" class="writing-section">
-      <header class="section-head reveal"><span>02</span><p>WRITING / 文字</p><small>NOTES & ESSAYS</small></header>
-      <div class="writing-grid">
-        <div class="writing-intro reveal">
-          <p class="section-label">WORDS ARE ALSO OBJECTS</p>
-          <h2 data-i18n="writing_heading">有些話，<br>適合慢一點讀。</h2>
-        </div>
-        <div class="article-list">
-          <a class="article-row reveal" href="#"><span>01</span><div><h3>期待，但也無能為力</h3><p>2026.08.01 · ESSAY</p></div><b>↗</b></a>
-          <a class="article-row reveal" href="#"><span>02</span><div><h3>一個人也沒不行</h3><p>2026.07.24 · NOTE</p></div><b>↗</b></a>
-          <a class="article-row reveal" href="#"><span>03</span><div><h3>下次再約</h3><p>2026.07.18 · NOTE</p></div><b>↗</b></a>
-          <a class="article-row reveal" href="#"><span>04</span><div><h3>當路斷了，然後呢？</h3><p>2026.07.12 · ESSAY</p></div><b>↗</b></a>
-        </div>
+  <main class="home-stage">
+    <div class="home-media js-cover" aria-hidden="true"><span class="media-fallback">JC</span></div>
+    <div class="home-overlay"></div>
+    <section class="home-copy">
+      <p class="micro">VIRTUAL CULTURAL CHARACTER / 2026—</p>
+      <h1>Something begins<br>as a breath.</h1>
+      <div class="home-bottom">
+        <p>影像、音樂、文字，與一個不存在的人留下的真實痕跡。</p>
+        <a class="enter-link" href="./film/">ENTER THE WORK <span>↗</span></a>
       </div>
     </section>
 
-    <section id="objects" class="objects-section">
-      <header class="section-head reveal"><span>03</span><p>OBJECTS / 他留下的東西</p><small>A PERSONAL EDIT</small></header>
-      <div class="objects-stage reveal">
-        <div class="object-visual object-a"><span>01</span><b>CHAIR</b></div>
-        <div class="object-copy">
-          <p class="micro">OBJECT 01 / CHAIR / YEAR UNKNOWN</p>
-          <blockquote data-i18n="object_quote">「我不喜歡它剛做好的樣子。<br>二十年後比較好。」</blockquote>
-          <p data-i18n="object_body">留下來的理由，往往比價格更能說明一個人的品味。</p>
-        </div>
-      </div>
-    </section>
+    <div class="home-index" aria-label="Explore sections">
+      <a href="./film/"><span>01</span><b>FILM</b><em>影像</em></a>
+      <a href="./music/"><span>02</span><b>MUSIC</b><em>音樂</em></a>
+      <a href="./writing/"><span>03</span><b>WRITING</b><em>文字</em></a>
+      <a href="./about/"><span>04</span><b>ABOUT</b><em>關於</em></a>
+    </div>
 
-    <section id="about" class="about-section">
-      <div class="about-number">04</div>
-      <div class="about-main reveal">
-        <p class="section-label">ONLY NOW, AN INTRODUCTION</p>
-        <h2>JIANG<br>CHENG</h2>
-      </div>
-      <div class="about-text reveal">
-        <p data-i18n="about_body">蔣誠是一位虛擬文化人物。創作橫跨影像、音樂與寫作。比起回答他是不是「真的」，這個計畫更在意：一個不存在的人，能不能形成真正的觀點、品味與作品。</p>
-        <dl><div><dt>IDENTITY</dt><dd>VIRTUAL CHARACTER</dd></div><div><dt>BASED IN</dt><dd>TAIPEI / SHANGHAI / ONLINE</dd></div><div><dt>DISCIPLINES</dt><dd>FILM / MUSIC / WRITING</dd></div></dl>
-      </div>
-    </section>
-
-    <section class="closing">
-      <p class="micro">END / FOR NOW</p>
-      <h2 data-i18n="closing">你現在知道的，<br>仍然只是其中一部分。</h2>
-      <a href="#top">RETURN TO BEGINNING ↑</a>
-    </section>
+    <div class="mouse-label" aria-hidden="true">EXPLORE</div>
   </main>
 
-  <footer><span>© 2026 JIANG CHENG</span><span>FILM · MUSIC · WRITING · OBJECTS</span><span>繁 / 简 / EN</span></footer>
-  <script type="module" src="./main.js"></script>
+  <div class="mobile-menu" aria-hidden="true">
+    <button class="close-menu">CLOSE</button>
+    <nav><a href="./film/">FILM</a><a href="./music/">MUSIC</a><a href="./writing/">WRITING</a><a href="./about/">ABOUT</a></nav>
+  </div>
+
+  <script src="./main.js"></script>
 </body>
 </html>
