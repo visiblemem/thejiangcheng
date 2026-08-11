@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Jiang Cheng 蔣誠 — virtual artist, film, music and writing." />
+  <title>Jiang Cheng — 蔣誠</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Jiang Cheng home">JIANG CHENG</a>
+    <div class="top-actions">
+      <nav class="lang" aria-label="Language">
+        <button data-lang="zh-tw" class="active">繁</button>
+        <button data-lang="zh-cn">简</button>
+        <button data-lang="en">EN</button>
+      </nav>
+      <button class="index-toggle" aria-expanded="false" aria-controls="index-panel">＋</button>
+    </div>
+  </header>
+
+  <aside id="index-panel" class="index-panel" aria-hidden="true">
+    <div class="index-inner">
+      <p class="eyebrow">INDEX</p>
+      <a href="#chapter">01 / WORK</a>
+      <a href="#film">02 / FILM</a>
+      <a href="#music">03 / MUSIC</a>
+      <a href="#writing">04 / WRITING</a>
+      <a href="#objects">05 / OBJECTS</a>
+      <a href="#about">06 / ABOUT</a>
+    </div>
+  </aside>
+
+  <main id="top">
+    <section class="hero section-dark">
+      <div class="hero-copy reveal">
+        <p class="eyebrow" data-i18n="hero_kicker">A VIRTUAL CULTURAL CHARACTER</p>
+        <h1 data-i18n="hero_title">有些人留下作品。<br/>有些作品，留下了一個人。</h1>
+        <p class="hero-sub" data-i18n="hero_sub">我不存在，但我留下的東西是真的。</p>
+        <a class="enter" href="#world" data-i18n="enter">ENTER</a>
+      </div>
+      <div class="scroll-cue">SCROLL</div>
+    </section>
+
+    <section id="world" class="world section-dark">
+      <div class="world-copy reveal">
+        <p class="eyebrow" data-i18n="world_kicker">THE WORLD</p>
+        <h2 data-i18n="world_title">不是瀏覽作品。<br/>是慢慢認識一個人。</h2>
+      </div>
+      <div class="floating-card card-a">
+        <span>FILM</span><strong>一個人也沒不行</strong><small>2026</small>
+      </div>
+      <div class="floating-card card-b">
+        <span>MUSIC</span><strong>不算就被清算</strong><small>03:47</small>
+      </div>
+      <div class="floating-card card-c">
+        <span>WORDS</span><strong>下次再約</strong><small>NOTE 04</small>
+      </div>
+    </section>
+
+    <section id="chapter" class="chapter section-light">
+      <div class="chapter-head reveal">
+        <p class="eyebrow">CHAPTER 01</p>
+        <h2>一個人也沒不行</h2>
+        <p class="lead" data-i18n="chapter_intro">一個人久了，很多事情不是習慣了，是懶得再解釋。</p>
+      </div>
+
+      <div id="film" class="film-frame reveal">
+        <div class="film-placeholder">
+          <span>FILM / 16:9</span>
+          <button aria-label="Play film">▶</button>
+          <small>Replace with final MV source</small>
+        </div>
+      </div>
+
+      <div class="chapter-grid">
+        <article id="writing" class="writing reveal">
+          <p class="eyebrow">WORDS</p>
+          <h3 data-i18n="writing_title">有些東西不是一定要有人陪，才算完整。</h3>
+          <p data-i18n="writing_body">真正難的，從來不是一個人吃飯、一個人走路，而是當安靜變成日常以後，你還願不願意對自己誠實。</p>
+          <a href="#">READ FULL TEXT →</a>
+        </article>
+
+        <div id="music" class="music reveal">
+          <p class="eyebrow">MUSIC</p>
+          <div class="track">
+            <div>
+              <strong>一個人也沒不行</strong>
+              <small>Jiang Cheng / 2026</small>
+            </div>
+            <button class="play">▶</button>
+          </div>
+          <div class="progress"><span></span></div>
+          <div class="time"><span>00:00</span><span>03:47</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="objects" class="objects section-light">
+      <div class="objects-head reveal">
+        <p class="eyebrow">THINGS HE KEEPS</p>
+        <h2 data-i18n="objects_title">他留下的東西</h2>
+      </div>
+      <div class="object-grid">
+        <article class="object-card reveal"><div class="object-image object-1"></div><p>CHAIR / 1987</p><h3 data-i18n="object_1">我不喜歡它剛做好的樣子。二十年後比較好。</h3></article>
+        <article class="object-card reveal"><div class="object-image object-2"></div><p>LIGHT / 2004</p><h3 data-i18n="object_2">好的光，不需要讓你一直注意它。</h3></article>
+        <article class="object-card reveal"><div class="object-image object-3"></div><p>BOOK / UNKNOWN</p><h3 data-i18n="object_3">有些書不是用來讀完，是用來留下。</h3></article>
+      </div>
+    </section>
+
+    <section id="about" class="about section-dark">
+      <div class="about-copy reveal">
+        <p class="eyebrow">ABOUT</p>
+        <h2>JIANG CHENG<br/>蔣誠</h2>
+        <p data-i18n="about_body">Jiang Cheng（蔣誠）是一位虛擬文化人物與創作者，創作涵蓋音樂、影像、寫作與數位藝術。</p>
+        <div class="meta">VIRTUAL IDENTITY / CREATED 2026 / FILM / MUSIC / WRITING</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>© 2026 JIANG CHENG</span>
+    <span>VIRTUAL ARTIST / CULTURAL CHARACTER</span>
+  </footer>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
