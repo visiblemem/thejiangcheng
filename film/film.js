@@ -111,7 +111,11 @@
     const baseW=visible[0].offsetWidth||1;
     const baseH=visible[0].offsetHeight||1;
     const gap=mobile?12:18;
-    const fit=Math.min(mobile?1:1.16,rect.height*.94/(baseH*1.3));
+    // Phones have height to spare and little width, so let a strip card grow
+    // until it either fills the stage vertically or eats most of the screen.
+    const byHeight=rect.height*.94/(baseH*1.3);
+    const byWidth=mobile?rect.width*.82/baseW:Infinity;
+    const fit=Math.min(mobile?1.9:1.16,byHeight,byWidth);
     const cardW=baseW*fit;
     const cardH=baseH*fit;
     const total=visible.length*cardW+(visible.length-1)*gap;
