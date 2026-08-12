@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Film — Jiang Cheng</title>
-  <link rel="stylesheet" href="../styles.css?v=20260812-0835">
-  <link rel="stylesheet" href="./film.css?v=20260812-0835">
+  <link rel="stylesheet" href="../styles.css?v=20260812-1030">
+  <link rel="stylesheet" href="./film.css?v=20260812-1030">
 </head>
 <body class="film-experience">
   <div class="noise"></div>
@@ -19,83 +19,185 @@
 
   <main class="film-board">
     <div class="section-title"><span>FILM / ARCHIVE</span><h1>FILM</h1></div>
-    <div class="film-overview"><span>16 WORKS</span><i></i><span>08 DAILY</span><i></i><span>08 INTERVIEW</span></div>
 
-    <section class="film-gallery" aria-label="Draggable film gallery">
-      <div class="gallery-canvas">
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="首發預告">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 001</span><em>×</em></div><div class="film-object-meta"><strong>首發預告</strong><span>01:07</span></div>
+    <div class="film-filter-bar" role="tablist" aria-label="依分類篩選">
+      <button type="button" class="filter-tag is-active" data-category="all" role="tab" aria-selected="true">全部<em>16</em></button>
+      <button type="button" class="filter-tag" data-category="daily" role="tab" aria-selected="false">日常<em>08</em></button>
+      <button type="button" class="filter-tag" data-category="interview" role="tab" aria-selected="false">訪談<em>08</em></button>
+    </div>
+
+    <section class="film-stage" aria-label="Film gallery">
+      <div class="film-canvas">
+        <article class="film-card daily" data-film-category="daily" data-index="1" data-code="DAILY / 001" tabindex="0" role="button" aria-label="首發預告，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 001</span>
+            <div class="card-meta"><strong>首發預告</strong><span>01:07</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 達文西">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 001</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 達文西</strong><span>02:04</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="2" data-code="INTERVIEW / 001" tabindex="0" role="button" aria-label="蔣誠 × 達文西，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 001</span>
+            <div class="card-meta"><strong>蔣誠 × 達文西</strong><span>02:04</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="一個人也沒不行">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 002</span><em>×</em></div><div class="film-object-meta"><strong>一個人也沒不行</strong><span>05:11</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="3" data-code="DAILY / 002" tabindex="0" role="button" aria-label="一個人也沒不行，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 002</span>
+            <div class="card-meta"><strong>一個人也沒不行</strong><span>05:11</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 梵谷">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 002</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 梵谷</strong><span>03:22</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="4" data-code="INTERVIEW / 002" tabindex="0" role="button" aria-label="蔣誠 × 梵谷，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 002</span>
+            <div class="card-meta"><strong>蔣誠 × 梵谷</strong><span>03:22</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="下次再約">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 003</span><em>×</em></div><div class="film-object-meta"><strong>下次再約</strong><span>01:12</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="5" data-code="DAILY / 003" tabindex="0" role="button" aria-label="下次再約，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 003</span>
+            <div class="card-meta"><strong>下次再約</strong><span>01:12</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 王陽明">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 003</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 王陽明</strong><span>06:15</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="6" data-code="INTERVIEW / 003" tabindex="0" role="button" aria-label="蔣誠 × 王陽明，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 003</span>
+            <div class="card-meta"><strong>蔣誠 × 王陽明</strong><span>06:15</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="期待">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 004</span><em>×</em></div><div class="film-object-meta"><strong>期待</strong><span>02:08</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="7" data-code="DAILY / 004" tabindex="0" role="button" aria-label="期待，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 004</span>
+            <div class="card-meta"><strong>期待</strong><span>02:08</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 柏拉圖">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 004</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 柏拉圖</strong><span>09:16</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="8" data-code="INTERVIEW / 004" tabindex="0" role="button" aria-label="蔣誠 × 柏拉圖，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 004</span>
+            <div class="card-meta"><strong>蔣誠 × 柏拉圖</strong><span>09:16</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="一個普通的下午">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 005</span><em>×</em></div><div class="film-object-meta"><strong>一個普通的下午</strong><span>02:41</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="9" data-code="DAILY / 005" tabindex="0" role="button" aria-label="一個普通的下午，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 005</span>
+            <div class="card-meta"><strong>一個普通的下午</strong><span>02:41</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 尼采">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 005</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 尼采</strong><span>07:44</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="10" data-code="INTERVIEW / 005" tabindex="0" role="button" aria-label="蔣誠 × 尼采，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 005</span>
+            <div class="card-meta"><strong>蔣誠 × 尼采</strong><span>07:44</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="今天沒有安排">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 006</span><em>×</em></div><div class="film-object-meta"><strong>今天沒有安排</strong><span>01:33</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="11" data-code="DAILY / 006" tabindex="0" role="button" aria-label="今天沒有安排，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 006</span>
+            <div class="card-meta"><strong>今天沒有安排</strong><span>01:33</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 卡繆">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 006</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 卡繆</strong><span>07:26</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="12" data-code="INTERVIEW / 006" tabindex="0" role="button" aria-label="蔣誠 × 卡繆，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 006</span>
+            <div class="card-meta"><strong>蔣誠 × 卡繆</strong><span>07:26</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="回家的路上">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 007</span><em>×</em></div><div class="film-object-meta"><strong>回家的路上</strong><span>01:54</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="13" data-code="DAILY / 007" tabindex="0" role="button" aria-label="回家的路上，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 007</span>
+            <div class="card-meta"><strong>回家的路上</strong><span>01:54</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 蘇格拉底">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 007</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 蘇格拉底</strong><span>06:25</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="14" data-code="INTERVIEW / 007" tabindex="0" role="button" aria-label="蔣誠 × 蘇格拉底，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 007</span>
+            <div class="card-meta"><strong>蔣誠 × 蘇格拉底</strong><span>06:25</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film daily" data-film-category="daily" tabindex="0" role="button" aria-label="晚一點再睡">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>DAILY / 008</span><em>×</em></div><div class="film-object-meta"><strong>晚一點再睡</strong><span>01:36</span></div>
+        <article class="film-card daily" data-film-category="daily" data-index="15" data-code="DAILY / 008" tabindex="0" role="button" aria-label="晚一點再睡，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">DAILY / 008</span>
+            <div class="card-meta"><strong>晚一點再睡</strong><span>01:36</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
-        <article class="gallery-film interview" data-film-category="interview" tabindex="0" role="button" aria-label="蔣誠 × 莊子">
-          <div class="film-image" aria-hidden="true"></div><span class="film-corner corner-tl"></span><span class="film-corner corner-tr"></span><span class="film-corner corner-bl"></span><span class="film-corner corner-br"></span>
-          <div class="film-object-label"><span><b></b>INTERVIEW / 008</span><em>×</em></div><div class="film-object-meta"><strong>蔣誠 × 莊子</strong><span>08:18</span></div>
+        <article class="film-card interview" data-film-category="interview" data-index="16" data-code="INTERVIEW / 008" tabindex="0" role="button" aria-label="蔣誠 × 莊子，點擊播放">
+          <div class="card-media">
+            <div class="film-image" aria-hidden="true"></div>
+            <video class="film-video" playsinline preload="none" src="../media/jc-hero.mp4"></video>
+            <span class="card-code">INTERVIEW / 008</span>
+            <div class="card-meta"><strong>蔣誠 × 莊子</strong><span>08:18</span></div>
+            <span class="card-play" aria-hidden="true"></span>
+          </div>
+          <span class="card-reflection" aria-hidden="true"></span>
         </article>
       </div>
     </section>
 
-    <div class="film-hint">DRAG TO EXPLORE · CLICK TO FOCUS</div>
+    <div class="film-progress" aria-hidden="true"><span class="film-progress-thumb"></span></div>
+    <div class="film-hint">DRAG TO EXPLORE · INFINITE CANVAS</div>
   </main>
 
   <div class="mobile-menu" aria-hidden="true"><button class="menu-close">CLOSE</button><nav><a href="../film/">FILM <small>01</small></a><a href="../music/">MUSIC <small>02</small></a><a href="../writing/">WRITING <small>03</small></a><a href="../objects/">OBJECTS <small>04</small></a><a href="../about/">ABOUT <small>05</small></a></nav></div>
 
-  <script src="../main.js?v=20260812-0835"></script>
-  <script src="./film.js?v=20260812-0835"></script>
+  <script src="../main.js?v=20260812-1030"></script>
+  <script src="./film.js?v=20260812-1030"></script>
 </body>
 </html>
