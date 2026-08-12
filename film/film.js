@@ -25,21 +25,12 @@
     const col=i%4;
     const row=Math.floor(i/4);
     card.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
-    card.dataset.tilt=String((((i*37)%7)-3)*.42);
   });
 
-  const desktopPositions=[
-    [.09,.11],[.32,.16],[.56,.13],[.80,.17],
-    [.17,.37],[.42,.41],[.66,.36],[.93,.40],
-    [.06,.62],[.30,.66],[.53,.61],[.78,.65],
-    [.19,.87],[.44,.90],[.68,.86],[.93,.89]
-  ];
-  const mobilePositions=[
-    [.17,.055],[.66,.075],[.15,.175],[.64,.195],
-    [.18,.295],[.67,.315],[.16,.415],[.65,.435],
-    [.14,.535],[.66,.555],[.18,.655],[.64,.675],
-    [.16,.775],[.67,.795],[.15,.895],[.65,.915]
-  ];
+  // Per-card nudges off the grid, so the scatter reads as hand-placed rather
+  // than tabular. Kept small enough that no card leaves its safe band.
+  const JITTER_X=[.030,-.022,.018,-.034,.026,-.012,.036,-.028,.014,-.030,.022,-.016,.032,-.024,.020,-.018];
+  const JITTER_Y=[-.026,.032,-.038,.020,.036,-.028,.022,-.034,.030,-.020,.038,-.032,.018,.034,-.024,.028];
 
   let mode='all';
   let panX=0;
@@ -50,10 +41,12 @@
   let raf=0;
 
   const clamp=(value,min,max)=>value<min?min:value>max?max:value;
-  const wrap=(value,size)=>{
-    let wrapped=(value+size/2)%size;
+  // Wrap into [lo, lo+size) rather than around zero, so a card that scrolls off
+  // one edge reappears at the far edge already fully inside the stage.
+  const wrapFrom=(value,size,lo)=>{
+    let wrapped=(value-lo)%size;
     if(wrapped<0)wrapped+=size;
-    return wrapped-size/2;
+    return wrapped+lo;
   };
 
   const place=(card,x,y,scale,rotate,opacity,blur)=>{
@@ -79,25 +72,77 @@
     return Math.min(rect.width*.84/w,rect.height*.92/h,3.2);
   };
 
-  const layoutCanvas=(rect,mobile)=>{
-    const positions=mobile?mobilePositions:desktopPositions;
-    const tileW=rect.width;
-    const tileH=rect.height*(mobile?2.4:1);
-    const scale=mobile?.94:.86;
+  // The scatter is derived from the stage rather than a fixed coordinate table:
+  // a table cannot know how tall a card ends up, so cards near its extremes get
+  // sliced by the stage edge on short viewports. Here the card scale falls out
+  // of how many rows have to fit, which keeps every card whole at rest.
+  const canvasGeometry=rect=>{
+    const mobile=innerWidth<=820;
+    const cols=mobile?2:rect.width>=1080?6:rect.width>=760?4:3;
+    const rows=Math.ceil(cards.length/cols);
+    // Phones cannot show 8 rows at a usable size, so they show 3 and pan for the rest.
+    const visibleRows=mobile?Math.min(3,rows):rows;
+
+    const tall=cards.find(card=>card.classList.contains('daily'));
+    const wide=cards.find(card=>card.classList.contains('interview'));
+    const tallH=(tall&&tall.offsetHeight)||1;
+    const tallW=(tall&&tall.offsetWidth)||1;
+    const wideW=(wide&&wide.offsetWidth)||1;
+
+    // Portrait cards are the tall ones, so they set the height budget: the
+    // largest height at which visibleRows still stack inside the stage.
+    const byHeight=(1.15*rect.height-24)/(visibleRows+.15)/tallH;
+    const byWidth=rect.width/(cols*(tallW+wideW)/2*1.08);
+    const scale=clamp(Math.min(byHeight,byWidth),.34,1);
+
+    const cardH=tallH*scale;
+    const jitterY=12;
+    const spacing=visibleRows>1?(rect.height-cardH-2*jitterY-8)/(visibleRows-1):0;
+    // Derived from the tallest card, so the shorter landscape ones clear the
+    // edges too. Columns are clamped per card instead, since sharing one inset
+    // across both shapes squeezes a narrow row until its cards collide.
+    const topY=cardH/2+jitterY+4;
+    // The wrap period has to span every row centre, jitter included — clip a row
+    // out of the window and it teleports to the opposite edge mid-frame.
+    const lastCentre=topY+(rows-1)*spacing+jitterY;
+    const tileH=Math.max(rect.height,lastCentre+spacing/2);
+
+    // Rows per band, spread as evenly as the count allows (16 over 3 = 5/5/6)
+    // so a short final row does not leave one side of the canvas empty.
+    const rowOf=[];
+    const seatOf=[];
+    const seats=[];
+    for(let row=0;row<rows;row++){
+      const start=Math.floor(row*cards.length/rows);
+      const end=Math.floor((row+1)*cards.length/rows);
+      seats.push(end-start);
+      for(let i=start;i<end;i++){rowOf[i]=row;seatOf[i]=i-start;}
+    }
+
+    return {rows,scale,spacing,topY,tileW:rect.width,tileH,jitterY,rowOf,seatOf,seats};
+  };
+
+  const layoutCanvas=rect=>{
+    const g=canvasGeometry(rect);
 
     cards.forEach((card,index)=>{
-      const [px,py]=positions[index%positions.length];
-      const tilt=Number(card.dataset.tilt||0);
       card.dataset.hidden='false';
-
       if(activeCard===card){
         placeFocused(card,rect.width/2,rect.height*.5,focusScale(card,rect));
         return;
       }
-      const x=rect.width/2+wrap((px-.5)*tileW+panX,tileW);
-      const y=rect.height/2+wrap((py-.5)*tileH+panY,tileH);
-      if(activeCard)place(card,x,y,scale*.94,tilt,.08,.6);
-      else place(card,x,y,scale,tilt,1,0);
+      const row=g.rowOf[index];
+      const seat=g.seatOf[index];
+      const stagger=(row%2?.16:-.1)+JITTER_X[index];
+      const halfW=card.offsetWidth*g.scale/2;
+      const colCentre=(seat+.5+stagger)/g.seats[row]*g.tileW;
+      const baseX=clamp(colCentre,halfW+6,g.tileW-halfW-6);
+      const baseY=g.topY+row*g.spacing+JITTER_Y[index]*g.jitterY*25;
+      const x=wrapFrom(baseX+panX,g.tileW,0);
+      const y=wrapFrom(baseY+panY,g.tileH,0);
+      const tilt=((index*37)%7-3)*.42;
+      if(activeCard)place(card,x,y,g.scale*.94,tilt,.08,.6);
+      else place(card,x,y,g.scale,tilt,1,0);
     });
   };
 
@@ -151,7 +196,7 @@
     const rect=stage.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
     const mobile=innerWidth<=820;
-    if(mode==='all')layoutCanvas(rect,mobile);
+    if(mode==='all')layoutCanvas(rect);
     else layoutStrip(rect,mobile);
   };
 
