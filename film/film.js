@@ -1,153 +1,176 @@
 (()=>{
   fetch('./film-sprite.txt')
-    .then(r=>r.ok?r.text():Promise.reject())
+    .then(response=>response.ok?response.text():Promise.reject())
     .then(data=>document.documentElement.style.setProperty('--film-sprite',`url("data:image/webp;base64,${data.replace(/\s/g,'')}")`))
     .catch(()=>{});
 
-  const filmSpace=document.querySelector('.film-space');
-  const filmFilters=[...document.querySelectorAll('[data-film-mode]')];
+  const gallery=document.querySelector('.film-gallery');
+  const canvas=document.querySelector('.gallery-canvas');
   const hint=document.querySelector('.film-hint');
-  if(!filmSpace||!filmFilters.length)return;
+  if(!gallery||!canvas)return;
 
-  const originalNodes=[...filmSpace.querySelectorAll('.floating-film')];
-  const clones=[0,1,2,3].map(sourceIndex=>{
-    const clone=originalNodes[sourceIndex].cloneNode(true);
-    clone.classList.add('film-clone');
-    clone.dataset.clone='true';
-    clone.setAttribute('aria-hidden','true');
-    filmSpace.appendChild(clone);
-    return clone;
-  });
-  const nodes=[...originalNodes,...clones];
-
-  let panX=0,panY=0,railX=0,down=false,startX=0,startY=0,startPanX=0,startPanY=0,startRailX=0,pointerId=null,activeFilter='all',dragMode='canvas';
-
-  const desktopPos=[
-    [.115,.090,1.067],[.300,.142,.988],[.516,.156,1],[.710,.149,1.053],[.903,.143,1.056],
-    [.119,.354,.982],[.313,.385,.956],[.508,.398,1.041],[.681,.412,.978],[.862,.415,1.071],
-    [.075,.622,.967],[.274,.635,1.035],[.466,.639,1.044],[.663,.662,.994],[.886,.663,1.044],
-    [.140,.880,1],[.309,.883,.978],[.483,.898,.971],[.664,.902,.856],[.825,.912,.988]
+  const films=[...canvas.querySelectorAll('.gallery-film')];
+  const desktopPositions=[
+    [.08,.13,.94],[.27,.12,1.02],[.46,.16,.92],[.66,.11,1.06],
+    [.87,.17,.96],[.15,.42,1.04],[.36,.37,.91],[.56,.43,1.05],
+    [.77,.39,.97],[.96,.44,.92],[.06,.71,1.02],[.25,.67,.94],
+    [.46,.74,1.05],[.66,.68,.90],[.84,.76,1.03],[.98,.70,.95]
+  ];
+  const mobilePositions=[
+    [.10,.11,.96],[.38,.09,.90],[.68,.13,1.02],[.93,.10,.92],
+    [.15,.36,.94],[.43,.33,1.04],[.72,.38,.91],[.97,.34,1.02],
+    [.09,.60,1.02],[.37,.58,.92],[.66,.63,.98],[.94,.57,.90],
+    [.15,.84,.93],[.43,.82,1.03],[.72,.87,.91],[.97,.81,1.00]
   ];
 
-  const mobilePos=[
-    [.10,.08,1],[.36,.10,1],[.64,.08,.96],[.90,.11,1],
-    [.13,.29,.96],[.39,.31,1],[.67,.29,.96],[.93,.32,.94],
-    [.08,.50,1],[.34,.52,.96],[.62,.50,1],[.88,.53,.94],
-    [.13,.71,.96],[.39,.73,1],[.67,.71,.94],[.93,.74,.96],
-    [.10,.92,1],[.36,.94,.96],[.64,.92,.92],[.90,.95,.96]
-  ];
+  let panX=0;
+  let panY=0;
+  let activeFilm=null;
+  let pointerId=null;
+  let isDown=false;
+  let didDrag=false;
+  let startX=0;
+  let startY=0;
+  let startPanX=0;
+  let startPanY=0;
+  let pressFilm=null;
+  let raf=0;
 
-  const wrap=(v,size)=>{
-    let r=(v+size/2)%size;
-    if(r<0)r+=size;
-    return r-size/2;
+  const wrap=(value,size)=>{
+    let wrapped=(value+size/2)%size;
+    if(wrapped<0)wrapped+=size;
+    return wrapped-size/2;
+  };
+
+  const queueLayout=()=>{
+    cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(layout);
   };
 
   const layout=()=>{
-    const rect=filmSpace.getBoundingClientRect();
+    const rect=gallery.getBoundingClientRect();
     const mobile=innerWidth<=820;
-    const pos=mobile?mobilePos:desktopPos;
+    const positions=mobile?mobilePositions:desktopPositions;
     const tileW=rect.width;
     const tileH=rect.height;
-    const selected=originalNodes.filter(node=>activeFilter!=='all'&&node.dataset.filmCategory===activeFilter);
-    let selectedIndex=0,maxRail=1,selectedGap=0,selectedScale=1;
 
-    if(activeFilter!=='all'&&selected.length){
-      selectedScale=mobile?(activeFilter==='interview'?.90:1.10):(activeFilter==='interview'?.65:.95);
-      const baseW=selected[0].offsetWidth;
-      const cardW=baseW*selectedScale;
-      selectedGap=cardW+(mobile?14:18);
-      maxRail=Math.max(0,((selected.length-1)*selectedGap+cardW-rect.width)/2+20);
-      railX=Math.max(-maxRail,Math.min(maxRail,railX));
-      filmSpace.style.setProperty('--rail-progress',String(maxRail?(.5-railX/(maxRail*2)):.5));
-    }
-
-    nodes.forEach((node,index)=>{
-      const [px,py,ps]=pos[index];
+    films.forEach((film,index)=>{
+      const [px,py,baseScale]=positions[index%positions.length];
       let x=rect.width/2+wrap((px-.5)*tileW+panX,tileW);
       let y=rect.height/2+wrap((py-.5)*tileH+panY,tileH);
-      let scale=(mobile?(node.classList.contains('interview')?.52:.58):1)*ps;
-      let opacity=1;
-      node.dataset.selected='false';
+      let scale=baseScale;
+      let opacity=.30+(index%5)*.075;
+      let blur=0;
 
-      if(activeFilter!=='all'){
-        if(node.dataset.clone==='true'){
-          scale=.01;
-          opacity=0;
-        }else if(node.dataset.filmCategory===activeFilter){
-          const filmIndex=selectedIndex++;
-          x=rect.width/2+(filmIndex-(selected.length-1)/2)*selectedGap+railX;
-          y=rect.height*.32;
-          scale=selectedScale;
+      if(activeFilm){
+        if(film===activeFilm){
+          x=rect.width/2;
+          y=rect.height*(mobile?.46:.48);
+          scale=mobile
+            ?(film.classList.contains('interview')?1.28:1.72)
+            :(film.classList.contains('interview')?1.52:1.62);
           opacity=1;
-          node.dataset.selected='true';
+          blur=0;
         }else{
-          scale=.01;
-          opacity=0;
+          opacity=.10;
+          blur=.55;
+          scale*=.94;
         }
       }
 
-      node.style.setProperty('--screen-x',`${x}px`);
-      node.style.setProperty('--screen-y',`${y}px`);
-      node.style.setProperty('--node-scale',scale);
-      node.style.setProperty('--node-opacity',opacity);
-      node.style.setProperty('--node-blur','0px');
+      film.style.setProperty('--screen-x',`${x}px`);
+      film.style.setProperty('--screen-y',`${y}px`);
+      film.style.setProperty('--film-scale',String(scale));
+      film.style.setProperty('--film-opacity',String(opacity));
+      film.style.setProperty('--film-blur',`${blur}px`);
     });
   };
 
-  const applyFilter=filter=>{
-    activeFilter=filter;
-    filmSpace.dataset.filter=filter;
-    railX=0;
-    filmFilters.forEach(button=>button.classList.toggle('active',button.dataset.filmMode===filter));
-    if(hint)hint.textContent=filter==='all'?'DRAG TO EXPLORE · INFINITE CANVAS':'DRAG LEFT / RIGHT';
-    layout();
+  const setActive=film=>{
+    activeFilm=film||null;
+    films.forEach(item=>item.dataset.active=item===activeFilm?'true':'false');
+    gallery.classList.toggle('has-focus',Boolean(activeFilm));
+    if(hint)hint.textContent=activeFilm?'CLICK AGAIN OR PRESS ESC TO CLOSE':'DRAG TO EXPLORE · CLICK TO FOCUS';
+    queueLayout();
   };
 
-  applyFilter('all');
-  filmFilters.forEach(button=>button.addEventListener('click',()=>applyFilter(button.dataset.filmMode)));
+  films.forEach(film=>{
+    film.addEventListener('mouseenter',()=>{
+      if(!activeFilm)film.classList.add('is-hovered');
+    });
+    film.addEventListener('mouseleave',()=>film.classList.remove('is-hovered'));
+    film.addEventListener('keydown',event=>{
+      if(event.key==='Enter'||event.key===' '){
+        event.preventDefault();
+        setActive(activeFilm===film?null:film);
+      }
+    });
+  });
 
-  filmSpace.addEventListener('pointerdown',event=>{
+  gallery.addEventListener('pointerdown',event=>{
     if(event.pointerType==='mouse'&&event.button!==0)return;
-    down=true;
     pointerId=event.pointerId;
+    isDown=true;
+    didDrag=false;
     startX=event.clientX;
     startY=event.clientY;
     startPanX=panX;
     startPanY=panY;
-    startRailX=railX;
-    dragMode=activeFilter==='all'?'canvas':'rail';
-    filmSpace.classList.add('panning');
-    filmSpace.setPointerCapture?.(event.pointerId);
+    pressFilm=event.target.closest?.('.gallery-film')||null;
+    gallery.classList.add('dragging');
+    gallery.setPointerCapture?.(pointerId);
   });
 
-  filmSpace.addEventListener('pointermove',event=>{
-    if(!down||event.pointerId!==pointerId)return;
+  gallery.addEventListener('pointermove',event=>{
+    if(!isDown||event.pointerId!==pointerId)return;
     const dx=event.clientX-startX;
     const dy=event.clientY-startY;
-    if(dragMode==='canvas'){
-      panX=startPanX+dx;
-      panY=startPanY+dy;
-    }else{
-      railX=startRailX+dx;
-    }
-    layout();
-    event.preventDefault();
-  });
+    if(Math.hypot(dx,dy)>5)didDrag=true;
+    if(!didDrag)return;
 
-  const end=event=>{
-    if(!down||event.pointerId!==pointerId)return;
-    down=false;
-    filmSpace.classList.remove('panning');
-    try{filmSpace.releasePointerCapture?.(event.pointerId)}catch(_){ }
+    if(activeFilm)setActive(null);
+    panX=startPanX+dx;
+    panY=startPanY+dy;
+    queueLayout();
+    event.preventDefault();
+  },{passive:false});
+
+  const finishPointer=event=>{
+    if(!isDown||event.pointerId!==pointerId)return;
+    isDown=false;
+    gallery.classList.remove('dragging');
+    try{gallery.releasePointerCapture?.(pointerId)}catch(_){ }
+
+    if(!didDrag){
+      const film=pressFilm;
+      if(film)setActive(activeFilm===film?null:film);
+      else if(activeFilm)setActive(null);
+    }
+
     pointerId=null;
+    pressFilm=null;
   };
 
-  filmSpace.addEventListener('pointerup',end);
-  filmSpace.addEventListener('pointercancel',()=>{
-    down=false;
+  gallery.addEventListener('pointerup',finishPointer);
+  gallery.addEventListener('pointercancel',()=>{
+    isDown=false;
     pointerId=null;
-    filmSpace.classList.remove('panning');
+    pressFilm=null;
+    gallery.classList.remove('dragging');
   });
-  addEventListener('resize',layout);
+
+  gallery.addEventListener('wheel',event=>{
+    if(activeFilm)setActive(null);
+    panX-=event.deltaX||event.deltaY*.72;
+    panY-=event.deltaY*.28;
+    queueLayout();
+    event.preventDefault();
+  },{passive:false});
+
+  addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&activeFilm)setActive(null);
+  });
+  addEventListener('resize',queueLayout);
+
+  setActive(null);
 })();
