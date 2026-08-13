@@ -11,45 +11,70 @@
   const lightboxClose=document.querySelector('.film-lightbox-close');
   if(!viewport||!world)return;
 
-  fetch('./film-sprite.txt').then(r=>r.ok?r.text():Promise.reject()).then(data=>document.documentElement.style.setProperty('--film-sprite',`url("data:image/webp;base64,${data.replace(/\s/g,'')}")`)).catch(()=>{});
+  fetch('./film-sprite.txt')
+    .then(r=>r.ok?r.text():Promise.reject())
+    .then(data=>document.documentElement.style.setProperty('--film-sprite',`url("data:image/webp;base64,${data.replace(/\s/g,'')}")`))
+    .catch(()=>{});
 
   const originals=[...world.querySelectorAll('.film-tile')];
-  const ORIENTATION_PATTERN=['L','P','L','P','L','P','P','L'];
+  const GAP=5;
+  const ITEMS_PER_ROW=4;
+
+  // Every row always contains two 16:9 and two 9:16 works.
+  // Odd/even rows swap the order, so any new item continues automatically.
+  const orientationFor=index=>{
+    const row=Math.floor(index/ITEMS_PER_ROW);
+    const col=index%ITEMS_PER_ROW;
+    const evenPattern=['L','P','L','P'];
+    const oddPattern=['P','L','P','L'];
+    return (row%2===0?evenPattern:oddPattern)[col];
+  };
+
   originals.forEach((tile,index)=>{
     const spriteIndex=(Number(tile.dataset.index||index+1)-1+16)%16;
-    const col=spriteIndex%4,row=Math.floor(spriteIndex/4);
-    tile.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
-    const orientation=ORIENTATION_PATTERN[index%ORIENTATION_PATTERN.length];
+    const spriteCol=spriteIndex%4;
+    const spriteRow=Math.floor(spriteIndex/4);
+    tile.style.setProperty('--sprite-pos',`${(spriteCol*33.333).toFixed(3)}% ${(spriteRow*33.333).toFixed(3)}%`);
+    const orientation=orientationFor(index);
     tile.dataset.orientation=orientation==='L'?'landscape':'portrait';
     tile.classList.toggle('landscape',orientation==='L');
     tile.classList.toggle('portrait',orientation==='P');
     tile.classList.remove('small','slim');
   });
 
+  // Equal-row layout: all tiles share one height. Aspect ratio changes width only.
+  // This guarantees exactly 5px horizontal and vertical gaps between tile frames.
   const buildPacking=()=>{
     const mobile=innerWidth<=820;
-    const COL_W=mobile?92:145;
-    const GAP=5;
-    const COLS=mobile?6:8;
-    const skyline=Array(COLS).fill(GAP);
+    const ROW_H=mobile?118:176;
+    const landscapeW=ROW_H*16/9;
+    const portraitW=ROW_H*9/16;
+    const rowW=2*landscapeW+2*portraitW+3*GAP;
+    const rows=Math.ceil(originals.length/ITEMS_PER_ROW);
     const positions=new Map();
-    originals.forEach(tile=>{
-      const landscape=tile.dataset.orientation==='landscape';
-      const span=landscape?2:1;
-      const width=span*COL_W+(span-1)*GAP;
-      const height=landscape?width*9/16:width*16/9;
-      let bestCol=0,bestY=Infinity;
-      for(let c=0;c<=COLS-span;c++){
-        const y=Math.max(...skyline.slice(c,c+span));
-        if(y<bestY-.1){bestY=y;bestCol=c;}
+
+    originals.forEach((tile,index)=>{
+      const row=Math.floor(index/ITEMS_PER_ROW);
+      const col=index%ITEMS_PER_ROW;
+      let cursorX=0;
+      for(let c=0;c<col;c++){
+        const o=orientationFor(row*ITEMS_PER_ROW+c);
+        cursorX+=(o==='L'?landscapeW:portraitW)+GAP;
       }
-      const x=GAP+bestCol*(COL_W+GAP)+width/2;
-      const y=bestY+height/2;
-      positions.set(tile,{x,y,width,height});
-      for(let c=bestCol;c<bestCol+span;c++)skyline[c]=bestY+height+GAP;
-      tile.style.width=`${width}px`;tile.style.height=`${height}px`;
+      const orientation=orientationFor(index);
+      const width=orientation==='L'?landscapeW:portraitW;
+      const x=cursorX+width/2;
+      const y=row*(ROW_H+GAP)+ROW_H/2;
+      positions.set(tile,{x,y,width,height:ROW_H});
+      tile.style.width=`${width}px`;
+      tile.style.height=`${ROW_H}px`;
     });
-    return {positions,periodW:COLS*(COL_W+GAP)+GAP,periodH:Math.max(...skyline)+GAP};
+
+    return {
+      positions,
+      periodW:rowW+GAP,
+      periodH:Math.max(1,rows)*(ROW_H+GAP)
+    };
   };
 
   let packing=buildPacking();
@@ -57,114 +82,179 @@
   const rebuildClones=()=>{
     [...world.querySelectorAll('.film-tile[aria-hidden="true"]')].forEach(el=>el.remove());
     clones.length=0;
-    for(let ty=-2;ty<=2;ty++)for(let tx=-2;tx<=2;tx++)originals.forEach(source=>{
-      const el=(tx===0&&ty===0)?source:source.cloneNode(true);
-      if(el!==source){el.removeAttribute('tabindex');el.setAttribute('aria-hidden','true');world.appendChild(el);}
-      clones.push({el,source,tx,ty});
-    });
+    for(let ty=-2;ty<=2;ty++)for(let tx=-2;tx<=2;tx++){
+      originals.forEach(source=>{
+        const el=(tx===0&&ty===0)?source:source.cloneNode(true);
+        if(el!==source){
+          el.removeAttribute('tabindex');
+          el.setAttribute('aria-hidden','true');
+          world.appendChild(el);
+        }
+        clones.push({el,source,tx,ty});
+      });
+    }
   };
   rebuildClones();
 
-  const startX=innerWidth*.5-packing.periodW*.5;
-  const startY=innerHeight*.5-packing.periodH*.5;
-  let offsetX=startX,offsetY=startY,targetX=startX,targetY=startY;
-  let motionX=0,motionY=0,pointerVX=0,pointerVY=0;
+  let offsetX=innerWidth*.5-packing.periodW*.5;
+  let offsetY=innerHeight*.5-packing.periodH*.5;
+  let velX=0,velY=0;
   let dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0,pressTile=null;
 
-  // Weighted-canvas feel: cursor moves the target; the canvas body follows it through a damped spring.
-  const DRAG_RESPONSE=.72;
-  const SPRING=.075;
-  const DAMPING=.78;
-  const THROW=.17;
-  const WHEEL_RESPONSE=.30;
-  const wrapOffset=(value,size)=>{while(value>size)value-=size;while(value<-size)value+=size;return value;};
+  const DRAG_GAIN=.62;
+  const FRICTION=.91;
+  const WHEEL_GAIN=.34;
+  const wrapOffset=(value,size)=>{
+    while(value>size)value-=size;
+    while(value<-size)value+=size;
+    return value;
+  };
 
   const layout=()=>{
-    const vw=innerWidth,vh=innerHeight,lens=Math.min(vw,vh)*.72;
+    const vw=innerWidth,vh=innerHeight;
+    const lens=Math.min(vw,vh)*.72;
     const {positions,periodW,periodH}=packing;
+
     clones.forEach(({el,source,tx,ty})=>{
-      const p=positions.get(source);if(!p)return;
-      if(el!==source){el.style.width=`${p.width}px`;el.style.height=`${p.height}px`;}
-      const rawX=p.x+tx*periodW+offsetX,rawY=p.y+ty*periodH+offsetY;
-      const dx=rawX-vw/2,dy=rawY-vh/2,n=Math.min(1.65,Math.hypot(dx,dy)/Math.max(1,lens));
+      const p=positions.get(source);
+      if(!p)return;
+      if(el!==source){
+        el.style.width=`${p.width}px`;
+        el.style.height=`${p.height}px`;
+      }
+      const rawX=p.x+tx*periodW+offsetX;
+      const rawY=p.y+ty*periodH+offsetY;
+      const dx=rawX-vw/2;
+      const dy=rawY-vh/2;
+      const n=Math.min(1.65,Math.hypot(dx,dy)/Math.max(1,lens));
       const radial=1+.105*n*n;
-      const warpedX=vw/2+dx*radial,warpedY=vh/2+dy*radial;
-      const scale=Math.max(.72,1-.12*n+.04*n*n),opacity=Math.max(.48,1-n*.25);
+      const warpedX=vw/2+dx*radial;
+      const warpedY=vh/2+dy*radial;
+      const scale=Math.max(.72,1-.12*n+.04*n*n);
+      const opacity=Math.max(.48,1-n*.25);
       el.style.transform=`translate3d(${warpedX}px,${warpedY}px,0) translate(-50%,-50%) scale(${scale})`;
       el.style.opacity=String(opacity);
       el.style.zIndex=String(Math.max(1,12-Math.round(n*5)));
     });
   };
 
+  // Pure momentum decay: no spring, no target, no bounce, no snap-back.
   const tick=()=>{
-    const ax=(targetX-offsetX)*SPRING;
-    const ay=(targetY-offsetY)*SPRING;
-    motionX=(motionX+ax)*DAMPING;
-    motionY=(motionY+ay)*DAMPING;
-    offsetX+=motionX;
-    offsetY+=motionY;
-
-    const wrappedX=wrapOffset(offsetX,packing.periodW);
-    const wrappedY=wrapOffset(offsetY,packing.periodH);
-    if(wrappedX!==offsetX){const d=wrappedX-offsetX;offsetX=wrappedX;targetX+=d;}
-    if(wrappedY!==offsetY){const d=wrappedY-offsetY;offsetY=wrappedY;targetY+=d;}
-
-    if(Math.abs(targetX-offsetX)<.01&&Math.abs(motionX)<.01){offsetX=targetX;motionX=0;}
-    if(Math.abs(targetY-offsetY)<.01&&Math.abs(motionY)<.01){offsetY=targetY;motionY=0;}
+    if(!dragging){
+      offsetX+=velX;
+      offsetY+=velY;
+      velX*=FRICTION;
+      velY*=FRICTION;
+      if(Math.abs(velX)<.015)velX=0;
+      if(Math.abs(velY)<.015)velY=0;
+    }
+    offsetX=wrapOffset(offsetX,packing.periodW);
+    offsetY=wrapOffset(offsetY,packing.periodH);
     layout();
     requestAnimationFrame(tick);
   };
 
-  const showMeta=tile=>{if(!meta||!tile)return;metaCode.textContent=tile.dataset.code||'';metaTitle.textContent=tile.dataset.title||'';metaDuration.textContent=tile.dataset.duration||'';meta.classList.add('is-on');};
+  const showMeta=tile=>{
+    if(!meta||!tile)return;
+    metaCode.textContent=tile.dataset.code||'';
+    metaTitle.textContent=tile.dataset.title||'';
+    metaDuration.textContent=tile.dataset.duration||'';
+    meta.classList.add('is-on');
+  };
   const hideMeta=()=>meta?.classList.remove('is-on');
   const bindHover=()=>{
-    originals.forEach(tile=>{tile.addEventListener('mouseenter',()=>showMeta(tile));tile.addEventListener('mouseleave',hideMeta);tile.addEventListener('focus',()=>showMeta(tile));tile.addEventListener('blur',hideMeta);});
-    clones.forEach(({el,source})=>{if(el===source)return;el.addEventListener('mouseenter',()=>showMeta(source));el.addEventListener('mouseleave',hideMeta);});
+    originals.forEach(tile=>{
+      tile.addEventListener('mouseenter',()=>showMeta(tile));
+      tile.addEventListener('mouseleave',hideMeta);
+      tile.addEventListener('focus',()=>showMeta(tile));
+      tile.addEventListener('blur',hideMeta);
+    });
+    clones.forEach(({el,source})=>{
+      if(el===source)return;
+      el.addEventListener('mouseenter',()=>showMeta(source));
+      el.addEventListener('mouseleave',hideMeta);
+    });
   };
   bindHover();
 
-  const openLightbox=()=>{if(!lightbox||!lightboxVideo)return;lightbox.classList.add('is-open');lightbox.setAttribute('aria-hidden','false');lightboxVideo.play().catch(()=>{});};
-  const closeLightbox=()=>{if(!lightbox||!lightboxVideo)return;lightboxVideo.pause();lightboxVideo.currentTime=0;lightbox.classList.remove('is-open');lightbox.setAttribute('aria-hidden','true');};
+  const openLightbox=()=>{
+    if(!lightbox||!lightboxVideo)return;
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden','false');
+    lightboxVideo.play().catch(()=>{});
+  };
+  const closeLightbox=()=>{
+    if(!lightbox||!lightboxVideo)return;
+    lightboxVideo.pause();
+    lightboxVideo.currentTime=0;
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden','true');
+  };
 
   viewport.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
-    dragging=true;moved=false;pointerId=e.pointerId;lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;pointerVX=pointerVY=0;
+    dragging=true;
+    moved=false;
+    pointerId=e.pointerId;
+    lastX=e.clientX;
+    lastY=e.clientY;
+    lastT=e.timeStamp;
+    velX=velY=0;
     pressTile=e.target.closest?.('.film-tile')||null;
-    viewport.classList.add('is-dragging');viewport.setPointerCapture?.(pointerId);
+    viewport.classList.add('is-dragging');
+    viewport.setPointerCapture?.(pointerId);
   });
+
   viewport.addEventListener('pointermove',e=>{
     if(!dragging||e.pointerId!==pointerId)return;
-    const dx=e.clientX-lastX,dy=e.clientY-lastY,dt=Math.max(1,e.timeStamp-lastT);
-    if(Math.hypot(dx,dy)>2)moved=true;
-    targetX+=dx*DRAG_RESPONSE;
-    targetY+=dy*DRAG_RESPONSE;
-    pointerVX=dx/dt*16;
-    pointerVY=dy/dt*16;
-    lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;
+    const rawDx=e.clientX-lastX;
+    const rawDy=e.clientY-lastY;
+    const dt=Math.max(1,e.timeStamp-lastT);
+    if(Math.hypot(rawDx,rawDy)>2)moved=true;
+    const dx=rawDx*DRAG_GAIN;
+    const dy=rawDy*DRAG_GAIN;
+    offsetX+=dx;
+    offsetY+=dy;
+    velX=dx/dt*16;
+    velY=dy/dt*16;
+    lastX=e.clientX;
+    lastY=e.clientY;
+    lastT=e.timeStamp;
     if(moved)page?.classList.add('has-moved');
     e.preventDefault();
   },{passive:false});
+
   const endPointer=e=>{
     if(!dragging||e.pointerId!==pointerId)return;
-    dragging=false;viewport.classList.remove('is-dragging');
+    dragging=false;
+    viewport.classList.remove('is-dragging');
     try{viewport.releasePointerCapture?.(pointerId)}catch(_){}
-    if(moved){
-      targetX+=pointerVX*THROW*16;
-      targetY+=pointerVY*THROW*16;
-    }else if(pressTile){openLightbox();}
-    pointerId=null;pressTile=null;
+    if(!moved&&pressTile)openLightbox();
+    pointerId=null;
+    pressTile=null;
   };
   viewport.addEventListener('pointerup',endPointer);
-  viewport.addEventListener('pointercancel',()=>{dragging=false;pointerId=null;pressTile=null;viewport.classList.remove('is-dragging')});
+  viewport.addEventListener('pointercancel',()=>{
+    dragging=false;
+    pointerId=null;
+    pressTile=null;
+    viewport.classList.remove('is-dragging');
+  });
 
   viewport.addEventListener('wheel',e=>{
-    targetX-=(e.deltaX||e.deltaY*.45)*WHEEL_RESPONSE;
-    targetY-=e.deltaY*WHEEL_RESPONSE;
+    const wx=-(e.deltaX||e.deltaY*.45)*WHEEL_GAIN;
+    const wy=-e.deltaY*WHEEL_GAIN;
+    offsetX+=wx;
+    offsetY+=wy;
+    velX=wx*.12;
+    velY=wy*.12;
     page?.classList.add('has-moved');
     e.preventDefault();
   },{passive:false});
 
-  originals.forEach(tile=>tile.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openLightbox();}}));
+  originals.forEach(tile=>tile.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){e.preventDefault();openLightbox();}
+  }));
   lightboxClose?.addEventListener('click',closeLightbox);
   lightbox?.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});
   addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
@@ -172,8 +262,6 @@
     packing=buildPacking();
     rebuildClones();
     bindHover();
-    targetX=offsetX;
-    targetY=offsetY;
     layout();
   });
 
