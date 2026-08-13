@@ -25,15 +25,25 @@
     tile.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
   });
 
-  const GAP=10;
   const PER_ROW=4;
   const ROW_PATTERNS=[
     ['L','P','P','L'],
     ['P','L','L','P']
   ];
 
+  const mobileSizing=()=>{
+    const mobile=innerWidth<=820;
+    return {
+      mobile,
+      gap:mobile?Math.max(7,Math.min(10,innerWidth*.02)):10,
+      height:mobile?Math.max(135,Math.min(160,innerWidth*.38)):345
+    };
+  };
+
   const buildPacking=()=>{
-    const H=innerWidth<=820?150:345;
+    const sizing=mobileSizing();
+    const GAP=sizing.gap;
+    const H=sizing.height;
     const LW=Math.round(H*16/9);
     const PW=Math.round(H*9/16);
     const fullRowW=LW*2+PW*2+GAP*(PER_ROW-1);
@@ -64,7 +74,9 @@
       fullRowW,
       contentH,
       periodW:fullRowW+GAP,
-      periodH:contentH+GAP
+      periodH:contentH+GAP,
+      gap:GAP,
+      height:H
     };
   };
 
@@ -72,6 +84,8 @@
   const clones=[];
   let selectedEl=null;
   let expandedSourceEl=null;
+  let lastTouchTapAt=0;
+  let lastTouchTapSource=null;
 
   function showMeta(tile){
     if(!meta||!tile||selectedEl)return;
@@ -83,8 +97,27 @@
   function hideMeta(){meta?.classList.remove('is-on');}
 
   const sourceForElement=el=>clones.find(item=>item.el===el)?.source||el;
-
   const inlineVideoFor=el=>el?.querySelector('.film-inline-video')||null;
+
+  const resetTouchTap=()=>{
+    lastTouchTapAt=0;
+    lastTouchTapSource=null;
+  };
+
+  const registerTouchTap=(el,event)=>{
+    if(!el||!event||!['touch','pen'].includes(event.pointerType))return false;
+    const source=sourceForElement(el);
+    const now=performance.now();
+    const isDouble=lastTouchTapSource===source&&(now-lastTouchTapAt)<=300;
+    lastTouchTapSource=source;
+    lastTouchTapAt=now;
+    if(isDouble){
+      resetTouchTap();
+      openExpanded(el);
+      return true;
+    }
+    return false;
+  };
 
   const clearSelection=()=>{
     if(!selectedEl)return;
@@ -98,6 +131,7 @@
     selectedEl.querySelector('.film-inline-title')?.remove();
     selectedEl.classList.remove('is-selected');
     selectedEl=null;
+    resetTouchTap();
   };
 
   const selectTile=el=>{
@@ -118,6 +152,13 @@
     video.preload='metadata';
     video.src=source.dataset.video||'../media/jc-hero.mp4';
     video.setAttribute('aria-label',`播放 ${source.dataset.title||'Film'}`);
+
+    video.addEventListener('pointerup',event=>{
+      if(!['touch','pen'].includes(event.pointerType))return;
+      const controlZone=video.clientHeight-48;
+      if(event.offsetY>=controlZone)return;
+      registerTouchTap(selectedEl,event);
+    });
 
     const title=document.createElement('div');
     title.className='film-inline-title';
@@ -171,6 +212,7 @@
     expandedVideo.removeAttribute('src');
     expandedVideo.load();
     expandedSourceEl=null;
+    resetTouchTap();
   };
 
   const bindCloneHover=(el,source)=>{
@@ -217,6 +259,7 @@
   let lastY=0;
   let lastT=0;
   let pressTile=null;
+  let pressPointerType='mouse';
 
   const DRAG_GAIN=.42;
   const THROW_GAIN=.68;
@@ -287,6 +330,7 @@
     dragging=true;
     moved=false;
     pointerId=e.pointerId;
+    pressPointerType=e.pointerType;
     lastX=e.clientX;
     lastY=e.clientY;
     lastT=e.timeStamp;
@@ -331,14 +375,24 @@
     if(moved){
       velX*=THROW_GAIN;
       velY*=THROW_GAIN;
+      resetTouchTap();
     }else if(pressTile){
-      selectTile(pressTile);
+      if(['touch','pen'].includes(pressPointerType)&&selectedEl===pressTile){
+        registerTouchTap(pressTile,e);
+      }else{
+        selectTile(pressTile);
+        if(['touch','pen'].includes(pressPointerType)){
+          lastTouchTapSource=sourceForElement(pressTile);
+          lastTouchTapAt=performance.now();
+        }
+      }
     }else{
       clearSelection();
     }
 
     pointerId=null;
     pressTile=null;
+    pressPointerType='mouse';
   };
 
   viewport.addEventListener('pointerup',endPointer);
@@ -346,8 +400,10 @@
     dragging=false;
     pointerId=null;
     pressTile=null;
+    pressPointerType='mouse';
     velX=0;
     velY=0;
+    resetTouchTap();
     viewport.classList.remove('is-dragging');
   });
 
