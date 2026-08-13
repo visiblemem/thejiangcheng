@@ -34,27 +34,23 @@
     });
   }
 
-  let offsetX=0,offsetY=0,targetX=0,targetY=0;
-  let velX=0,velY=0,dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0;
-  const wrap=(v,size)=>((v%size)+size)%size;
+  let offsetX=0,offsetY=0;
+  let velX=0,velY=0,dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0,pressTile=null;
 
   const layout=()=>{
     const vw=innerWidth,vh=innerHeight;
-    clones.forEach(({el,source,tx,ty,idx})=>{
+    clones.forEach(({el,source,tx,ty})=>{
       const baseX=Number(source.dataset.x||0)*TILE_W;
       const baseY=Number(source.dataset.y||0)*TILE_H;
-      let x=baseX+tx*TILE_W+offsetX;
-      let y=baseY+ty*TILE_H+offsetY;
-
+      const x=baseX+tx*TILE_W+offsetX;
+      const y=baseY+ty*TILE_H+offsetY;
       const cx=x-vw/2,cy=y-vh/2;
       const nx=cx/Math.max(vw,1),ny=cy/Math.max(vh,1);
       const dist=Math.min(1.4,Math.hypot(nx,ny));
       const depth=1-Math.min(.24,dist*.12);
-      const parallaxX=nx*22;
-      const parallaxY=ny*14;
+      const parallaxX=nx*22,parallaxY=ny*14;
       const rotate=Number(source.dataset.rotate||0)+(nx*1.2)-(ny*.6);
       const opacity=Math.max(.34,1-dist*.34);
-
       el.style.transform=`translate3d(${x+parallaxX}px,${y+parallaxY}px,0) translate(-50%,-50%) rotate(${rotate}deg) scale(${depth})`;
       el.style.opacity=String(opacity);
       el.style.zIndex=String(Math.max(1,10-Math.round(dist*5)));
@@ -108,6 +104,7 @@
   viewport.addEventListener('pointerdown',e=>{
     if(e.pointerType==='mouse'&&e.button!==0)return;
     dragging=true;moved=false;pointerId=e.pointerId;lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;velX=velY=0;
+    pressTile=e.target.closest?.('.film-tile')||null;
     viewport.classList.add('is-dragging');viewport.setPointerCapture?.(pointerId);
   });
   viewport.addEventListener('pointermove',e=>{
@@ -123,12 +120,11 @@
     if(!dragging||e.pointerId!==pointerId)return;
     dragging=false;viewport.classList.remove('is-dragging');
     try{viewport.releasePointerCapture?.(pointerId)}catch(_){ }
-    const tile=e.target.closest?.('.film-tile');
-    if(!moved&&tile)openLightbox();
-    pointerId=null;
+    if(!moved&&pressTile)openLightbox();
+    pointerId=null;pressTile=null;
   };
   viewport.addEventListener('pointerup',endPointer);
-  viewport.addEventListener('pointercancel',()=>{dragging=false;pointerId=null;viewport.classList.remove('is-dragging')});
+  viewport.addEventListener('pointercancel',()=>{dragging=false;pointerId=null;pressTile=null;viewport.classList.remove('is-dragging')});
 
   viewport.addEventListener('wheel',e=>{
     offsetX-=e.deltaX||e.deltaY*.45;
@@ -143,6 +139,5 @@
   lightbox?.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});
   addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
   addEventListener('resize',layout);
-
   layout();tick();
 })();
