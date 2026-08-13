@@ -55,7 +55,8 @@
   let packing=buildPacking();
   const clones=[];
   const rebuildClones=()=>{
-    [...world.querySelectorAll('.film-tile[aria-hidden="true"]')].forEach(el=>el.remove());clones.length=0;
+    [...world.querySelectorAll('.film-tile[aria-hidden="true"]')].forEach(el=>el.remove());
+    clones.length=0;
     for(let ty=-2;ty<=2;ty++)for(let tx=-2;tx<=2;tx++)originals.forEach(source=>{
       const el=(tx===0&&ty===0)?source:source.cloneNode(true);
       if(el!==source){el.removeAttribute('tabindex');el.setAttribute('aria-hidden','true');world.appendChild(el);}
@@ -64,11 +65,18 @@
   };
   rebuildClones();
 
-  let offsetX=innerWidth*.5-packing.periodW*.5,offsetY=innerHeight*.5-packing.periodH*.5;
-  let velX=0,velY=0,dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0,pressTile=null;
-  const DRAG_GAIN=.55;
-  const WHEEL_GAIN=.42;
-  const INERTIA_GAIN=.48;
+  const startX=innerWidth*.5-packing.periodW*.5;
+  const startY=innerHeight*.5-packing.periodH*.5;
+  let offsetX=startX,offsetY=startY,targetX=startX,targetY=startY;
+  let motionX=0,motionY=0,pointerVX=0,pointerVY=0;
+  let dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0,pressTile=null;
+
+  // Weighted-canvas feel: cursor moves the target; the canvas body follows it through a damped spring.
+  const DRAG_RESPONSE=.72;
+  const SPRING=.075;
+  const DAMPING=.78;
+  const THROW=.17;
+  const WHEEL_RESPONSE=.30;
   const wrapOffset=(value,size)=>{while(value>size)value-=size;while(value<-size)value+=size;return value;};
 
   const layout=()=>{
@@ -79,16 +87,32 @@
       if(el!==source){el.style.width=`${p.width}px`;el.style.height=`${p.height}px`;}
       const rawX=p.x+tx*periodW+offsetX,rawY=p.y+ty*periodH+offsetY;
       const dx=rawX-vw/2,dy=rawY-vh/2,n=Math.min(1.65,Math.hypot(dx,dy)/Math.max(1,lens));
-      const radial=1+.105*n*n,warpedX=vw/2+dx*radial,warpedY=vh/2+dy*radial;
+      const radial=1+.105*n*n;
+      const warpedX=vw/2+dx*radial,warpedY=vh/2+dy*radial;
       const scale=Math.max(.72,1-.12*n+.04*n*n),opacity=Math.max(.48,1-n*.25);
       el.style.transform=`translate3d(${warpedX}px,${warpedY}px,0) translate(-50%,-50%) scale(${scale})`;
-      el.style.opacity=String(opacity);el.style.zIndex=String(Math.max(1,12-Math.round(n*5)));
+      el.style.opacity=String(opacity);
+      el.style.zIndex=String(Math.max(1,12-Math.round(n*5)));
     });
   };
 
   const tick=()=>{
-    if(!dragging){offsetX+=velX;offsetY+=velY;velX*=.88;velY*=.88;if(Math.abs(velX)<.02)velX=0;if(Math.abs(velY)<.02)velY=0;}
-    offsetX=wrapOffset(offsetX,packing.periodW);offsetY=wrapOffset(offsetY,packing.periodH);layout();requestAnimationFrame(tick);
+    const ax=(targetX-offsetX)*SPRING;
+    const ay=(targetY-offsetY)*SPRING;
+    motionX=(motionX+ax)*DAMPING;
+    motionY=(motionY+ay)*DAMPING;
+    offsetX+=motionX;
+    offsetY+=motionY;
+
+    const wrappedX=wrapOffset(offsetX,packing.periodW);
+    const wrappedY=wrapOffset(offsetY,packing.periodH);
+    if(wrappedX!==offsetX){const d=wrappedX-offsetX;offsetX=wrappedX;targetX+=d;}
+    if(wrappedY!==offsetY){const d=wrappedY-offsetY;offsetY=wrappedY;targetY+=d;}
+
+    if(Math.abs(targetX-offsetX)<.01&&Math.abs(motionX)<.01){offsetX=targetX;motionX=0;}
+    if(Math.abs(targetY-offsetY)<.01&&Math.abs(motionY)<.01){offsetY=targetY;motionY=0;}
+    layout();
+    requestAnimationFrame(tick);
   };
 
   const showMeta=tile=>{if(!meta||!tile)return;metaCode.textContent=tile.dataset.code||'';metaTitle.textContent=tile.dataset.title||'';metaDuration.textContent=tile.dataset.duration||'';meta.classList.add('is-on');};
@@ -96,26 +120,63 @@
   const bindHover=()=>{
     originals.forEach(tile=>{tile.addEventListener('mouseenter',()=>showMeta(tile));tile.addEventListener('mouseleave',hideMeta);tile.addEventListener('focus',()=>showMeta(tile));tile.addEventListener('blur',hideMeta);});
     clones.forEach(({el,source})=>{if(el===source)return;el.addEventListener('mouseenter',()=>showMeta(source));el.addEventListener('mouseleave',hideMeta);});
-  };bindHover();
+  };
+  bindHover();
 
   const openLightbox=()=>{if(!lightbox||!lightboxVideo)return;lightbox.classList.add('is-open');lightbox.setAttribute('aria-hidden','false');lightboxVideo.play().catch(()=>{});};
   const closeLightbox=()=>{if(!lightbox||!lightboxVideo)return;lightboxVideo.pause();lightboxVideo.currentTime=0;lightbox.classList.remove('is-open');lightbox.setAttribute('aria-hidden','true');};
 
-  viewport.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;dragging=true;moved=false;pointerId=e.pointerId;lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;velX=velY=0;pressTile=e.target.closest?.('.film-tile')||null;viewport.classList.add('is-dragging');viewport.setPointerCapture?.(pointerId);});
+  viewport.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    dragging=true;moved=false;pointerId=e.pointerId;lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;pointerVX=pointerVY=0;
+    pressTile=e.target.closest?.('.film-tile')||null;
+    viewport.classList.add('is-dragging');viewport.setPointerCapture?.(pointerId);
+  });
   viewport.addEventListener('pointermove',e=>{
     if(!dragging||e.pointerId!==pointerId)return;
-    const rawDx=e.clientX-lastX,rawDy=e.clientY-lastY,dt=Math.max(1,e.timeStamp-lastT);
-    if(Math.hypot(rawDx,rawDy)>2)moved=true;
-    const dx=rawDx*DRAG_GAIN,dy=rawDy*DRAG_GAIN;
-    offsetX+=dx;offsetY+=dy;velX=dx/dt*16*INERTIA_GAIN;velY=dy/dt*16*INERTIA_GAIN;
-    lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;if(moved)page?.classList.add('has-moved');e.preventDefault();
+    const dx=e.clientX-lastX,dy=e.clientY-lastY,dt=Math.max(1,e.timeStamp-lastT);
+    if(Math.hypot(dx,dy)>2)moved=true;
+    targetX+=dx*DRAG_RESPONSE;
+    targetY+=dy*DRAG_RESPONSE;
+    pointerVX=dx/dt*16;
+    pointerVY=dy/dt*16;
+    lastX=e.clientX;lastY=e.clientY;lastT=e.timeStamp;
+    if(moved)page?.classList.add('has-moved');
+    e.preventDefault();
   },{passive:false});
-  const endPointer=e=>{if(!dragging||e.pointerId!==pointerId)return;dragging=false;viewport.classList.remove('is-dragging');try{viewport.releasePointerCapture?.(pointerId)}catch(_){}if(!moved&&pressTile)openLightbox();pointerId=null;pressTile=null;};
-  viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',()=>{dragging=false;pointerId=null;pressTile=null;viewport.classList.remove('is-dragging')});
-  viewport.addEventListener('wheel',e=>{const wx=-(e.deltaX||e.deltaY*.45)*WHEEL_GAIN,wy=-e.deltaY*WHEEL_GAIN;offsetX+=wx;offsetY+=wy;velX=wx*.055;velY=wy*.055;page?.classList.add('has-moved');e.preventDefault();},{passive:false});
+  const endPointer=e=>{
+    if(!dragging||e.pointerId!==pointerId)return;
+    dragging=false;viewport.classList.remove('is-dragging');
+    try{viewport.releasePointerCapture?.(pointerId)}catch(_){}
+    if(moved){
+      targetX+=pointerVX*THROW*16;
+      targetY+=pointerVY*THROW*16;
+    }else if(pressTile){openLightbox();}
+    pointerId=null;pressTile=null;
+  };
+  viewport.addEventListener('pointerup',endPointer);
+  viewport.addEventListener('pointercancel',()=>{dragging=false;pointerId=null;pressTile=null;viewport.classList.remove('is-dragging')});
+
+  viewport.addEventListener('wheel',e=>{
+    targetX-=(e.deltaX||e.deltaY*.45)*WHEEL_RESPONSE;
+    targetY-=e.deltaY*WHEEL_RESPONSE;
+    page?.classList.add('has-moved');
+    e.preventDefault();
+  },{passive:false});
 
   originals.forEach(tile=>tile.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openLightbox();}}));
-  lightboxClose?.addEventListener('click',closeLightbox);lightbox?.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
-  addEventListener('resize',()=>{packing=buildPacking();rebuildClones();bindHover();layout();});
-  layout();tick();
+  lightboxClose?.addEventListener('click',closeLightbox);
+  lightbox?.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});
+  addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+  addEventListener('resize',()=>{
+    packing=buildPacking();
+    rebuildClones();
+    bindHover();
+    targetX=offsetX;
+    targetY=offsetY;
+    layout();
+  });
+
+  layout();
+  tick();
 })();
