@@ -24,7 +24,7 @@
     tile.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
   });
 
-  const GAP=5;
+  const GAP=10;
   const PER_ROW=4;
   const ROW_PATTERNS=[
     ['L','P','P','L'],
@@ -32,7 +32,7 @@
   ];
 
   const buildPacking=()=>{
-    const H=innerWidth<=820?150:230;
+    const H=innerWidth<=820?150:345;
     const LW=Math.round(H*16/9);
     const PW=Math.round(H*9/16);
     const fullRowW=LW*2+PW*2+GAP*(PER_ROW-1);
