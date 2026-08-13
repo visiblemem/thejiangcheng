@@ -23,14 +23,14 @@
     tile.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
   });
 
-  const TILE_W=innerWidth<=820?960:1500;
-  const TILE_H=innerWidth<=820?1200:1000;
+  const TILE_W=innerWidth<=820?1040:1600;
+  const TILE_H=innerWidth<=820?760:1040;
   const clones=[];
   for(let ty=-1;ty<=1;ty++)for(let tx=-1;tx<=1;tx++){
-    originals.forEach((source,idx)=>{
+    originals.forEach(source=>{
       const el=(tx===0&&ty===0)?source:source.cloneNode(true);
       if(el!==source){el.removeAttribute('tabindex');el.setAttribute('aria-hidden','true');world.appendChild(el);}
-      clones.push({el,source,tx,ty,idx});
+      clones.push({el,source,tx,ty});
     });
   }
 
@@ -39,21 +39,27 @@
 
   const layout=()=>{
     const vw=innerWidth,vh=innerHeight;
+    const lens=Math.min(vw,vh)*0.72;
     clones.forEach(({el,source,tx,ty})=>{
       const baseX=Number(source.dataset.x||0)*TILE_W;
       const baseY=Number(source.dataset.y||0)*TILE_H;
-      const x=baseX+tx*TILE_W+offsetX;
-      const y=baseY+ty*TILE_H+offsetY;
-      const cx=x-vw/2,cy=y-vh/2;
-      const nx=cx/Math.max(vw,1),ny=cy/Math.max(vh,1);
-      const dist=Math.min(1.4,Math.hypot(nx,ny));
-      const depth=1-Math.min(.24,dist*.12);
-      const parallaxX=nx*22,parallaxY=ny*14;
-      const rotate=Number(source.dataset.rotate||0)+(nx*1.2)-(ny*.6);
-      const opacity=Math.max(.34,1-dist*.34);
-      el.style.transform=`translate3d(${x+parallaxX}px,${y+parallaxY}px,0) translate(-50%,-50%) rotate(${rotate}deg) scale(${depth})`;
+      const rawX=baseX+tx*TILE_W+offsetX;
+      const rawY=baseY+ty*TILE_H+offsetY;
+
+      const dx=rawX-vw/2,dy=rawY-vh/2;
+      const r=Math.hypot(dx,dy);
+      const n=Math.min(1.65,r/Math.max(1,lens));
+
+      // Barrel/fisheye warp: keep the grid mathematically regular, then bend it radially.
+      const radial=1+0.115*n*n;
+      const warpedX=vw/2+dx*radial;
+      const warpedY=vh/2+dy*radial;
+      const scale=Math.max(.70,1-.13*n+.045*n*n);
+      const opacity=Math.max(.46,1-n*.26);
+
+      el.style.transform=`translate3d(${warpedX}px,${warpedY}px,0) translate(-50%,-50%) scale(${scale})`;
       el.style.opacity=String(opacity);
-      el.style.zIndex=String(Math.max(1,10-Math.round(dist*5)));
+      el.style.zIndex=String(Math.max(1,12-Math.round(n*5)));
     });
   };
 
@@ -65,8 +71,7 @@
     }
     if(offsetX>TILE_W||offsetX<-TILE_W)offsetX=((offsetX+TILE_W)%TILE_W+TILE_W)%TILE_W-TILE_W;
     if(offsetY>TILE_H||offsetY<-TILE_H)offsetY=((offsetY+TILE_H)%TILE_H+TILE_H)%TILE_H-TILE_H;
-    layout();
-    requestAnimationFrame(tick);
+    layout();requestAnimationFrame(tick);
   };
 
   const showMeta=tile=>{
