@@ -3,3 +3,25 @@
   background-size:var(--tile-poster-size,400% 400%);
   background-position:var(--tile-poster-pos,var(--sprite-pos));
 }
+.film-tile.is-remote:not(.has-poster) .film-still{
+  background-image:none;
+  background:#080808;
+}
+.film-inline-image{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:#000;
+  z-index:3;
+  display:block;
+  pointer-events:none;
+}
+.film-expanded-image{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  background:#000;
+}
