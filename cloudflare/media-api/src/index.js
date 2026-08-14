@@ -16,17 +16,24 @@ function encodeObjectKey(key) {
   return key.split('/').map(encodeURIComponent).join('/');
 }
 
-function prefixesFromEnv(env) {
-  const value = env.FILM_PREFIXES || env.FILM_PREFIX || 'film/';
-  return String(value)
+function parsePrefixes(value, fallback) {
+  return String(value || fallback)
     .split(',')
     .map(prefix => prefix.trim())
     .filter(Boolean)
     .map(prefix => prefix.endsWith('/') ? prefix : `${prefix}/`);
 }
 
+function videoPrefixesFromEnv(env) {
+  return parsePrefixes(env.FILM_PREFIXES || env.FILM_PREFIX, 'film/,video/');
+}
+
+function imagePrefixesFromEnv(env) {
+  return parsePrefixes(env.IMAGE_PREFIXES, 'pic/');
+}
+
 function matchingPrefix(key, prefixes) {
-  return prefixes.find(prefix => key.startsWith(prefix)) || prefixes[0] || 'film/';
+  return prefixes.find(prefix => key.startsWith(prefix)) || prefixes[0] || '';
 }
 
 function relativeKey(key, prefix) {
@@ -50,15 +57,11 @@ function sequenceFromKey(key, prefix) {
   return match ? Number(match[1]) : null;
 }
 
-function categoryFromKey(key, prefix) {
+function categoryFromKey(key, prefix, fallback = 'FILM') {
   const relative = relativeKey(key, prefix);
   const parts = relative.split('/').filter(Boolean);
-
-  // Existing R2 layout stores Film files directly under video/.
-  // Treat those as generic FILM rather than using the filename as a category.
-  if (prefix === 'video/' && parts.length <= 1) return 'FILM';
-
-  const first = parts[0]?.toLowerCase() || 'film';
+  if ((prefix === 'video/' || prefix === 'pic/') && parts.length <= 1) return fallback;
+  const first = parts[0]?.toLowerCase() || fallback.toLowerCase();
   if (first === 'conversation' || first === 'interview') return 'INTERVIEW';
   if (first === 'daily') return 'DAILY';
   return first.toUpperCase();
@@ -120,47 +123,51 @@ async function listAcrossPrefixes(bucket, prefixes) {
   return objects;
 }
 
+function itemFromObject(object, prefixes, env, kind, index) {
+  const meta = object.customMetadata || {};
+  const prefix = matchingPrefix(object.key, prefixes);
+  const sequence = sequenceFromKey(object.key, prefix);
+  const category = meta.category || categoryFromKey(object.key, prefix, kind === 'image' ? 'IMAGE' : 'FILM');
+  const order = Number(meta.order || sequence || index + 1);
+  const published = String(meta.published || 'true').toLowerCase() !== 'false';
+  const url = mediaUrl(env.PUBLIC_MEDIA_BASE, object.key);
+
+  return {
+    key: object.key,
+    kind,
+    sourcePrefix: prefix,
+    title: meta.title || titleFromKey(object.key, prefix),
+    code: meta.code || `${category} / ${String(sequence || order).padStart(3, '0')}`,
+    category,
+    duration: kind === 'video' ? (meta.duration || '') : '',
+    orientation: meta.orientation || '',
+    order,
+    published,
+    size: object.size,
+    uploaded: object.uploaded?.toISOString?.() || null,
+    contentType: object.httpMetadata?.contentType || null,
+    url,
+    poster: kind === 'image' ? url : (meta.poster ? mediaUrl(env.PUBLIC_MEDIA_BASE, meta.poster) : null)
+  };
+}
+
 async function filmIndex(request, env) {
-  const prefixes = prefixesFromEnv(env);
-  const objects = await listAcrossPrefixes(env.MEDIA, prefixes);
-  const imagesByStem = new Map();
+  const videoPrefixes = videoPrefixesFromEnv(env);
+  const imagePrefixes = imagePrefixesFromEnv(env);
+  const [videoObjects, imageObjects] = await Promise.all([
+    listAcrossPrefixes(env.MEDIA, videoPrefixes),
+    listAcrossPrefixes(env.MEDIA, imagePrefixes)
+  ]);
 
-  for (const object of objects) {
-    if (!IMAGE_EXTENSIONS.has(extension(object.key))) continue;
-    let stem = stripExtension(object.key);
-    if (stem.endsWith('.poster')) stem = stem.slice(0, -'.poster'.length);
-    imagesByStem.set(stem, object.key);
-  }
-
-  const items = objects
+  const videos = videoObjects
     .filter(object => VIDEO_EXTENSIONS.has(extension(object.key)))
-    .map((object, index) => {
-      const meta = object.customMetadata || {};
-      const prefix = matchingPrefix(object.key, prefixes);
-      const sequence = sequenceFromKey(object.key, prefix);
-      const category = meta.category || categoryFromKey(object.key, prefix);
-      const stem = stripExtension(object.key);
-      const posterKey = meta.poster || imagesByStem.get(stem) || null;
-      const order = Number(meta.order || sequence || index + 1);
-      const published = String(meta.published || 'true').toLowerCase() !== 'false';
+    .map((object, index) => itemFromObject(object, videoPrefixes, env, 'video', index));
 
-      return {
-        key: object.key,
-        sourcePrefix: prefix,
-        title: meta.title || titleFromKey(object.key, prefix),
-        code: meta.code || `${category} / ${String(sequence || order).padStart(3, '0')}`,
-        category,
-        duration: meta.duration || '',
-        orientation: meta.orientation || '',
-        order,
-        published,
-        size: object.size,
-        uploaded: object.uploaded?.toISOString?.() || null,
-        contentType: object.httpMetadata?.contentType || null,
-        url: mediaUrl(env.PUBLIC_MEDIA_BASE, object.key),
-        poster: posterKey ? mediaUrl(env.PUBLIC_MEDIA_BASE, posterKey) : null
-      };
-    })
+  const images = imageObjects
+    .filter(object => IMAGE_EXTENSIONS.has(extension(object.key)))
+    .map((object, index) => itemFromObject(object, imagePrefixes, env, 'image', index));
+
+  const items = [...videos, ...images]
     .filter(item => item.published)
     .sort((a, b) => a.order - b.order || a.key.localeCompare(b.key));
 
@@ -170,8 +177,11 @@ async function filmIndex(request, env) {
 
   return new Response(JSON.stringify({
     source: 'cloudflare-r2',
-    prefixes,
+    videoPrefixes,
+    imagePrefixes,
     count: items.length,
+    videoCount: videos.filter(item => item.published).length,
+    imageCount: images.filter(item => item.published).length,
     items
   }), { headers });
 }
