@@ -89,10 +89,11 @@
       const rect=tile.getBoundingClientRect();
       if(rect.right<=0||rect.left>=innerWidth||rect.bottom<=0||rect.top>=innerHeight)return;
 
+      const touchesZone=rect.right>zone.left&&rect.left<zone.right&&rect.bottom>zone.top&&rect.top<zone.bottom;
+      if(!touchesZone)return;
+
       const cx=rect.left+rect.width/2;
       const cy=rect.top+rect.height/2;
-      if(cx<zone.left||cx>zone.right||cy<zone.top||cy>zone.bottom)return;
-
       const dx=(cx-zone.cx)/zone.width;
       const dy=(cy-zone.cy)/zone.height;
       const score=dx*dx+dy*dy;
