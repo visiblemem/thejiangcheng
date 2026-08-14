@@ -7,6 +7,7 @@
   const metaTitle=meta?.querySelector('.hover-title');
   const metaDuration=meta?.querySelector('.hover-duration');
   const expanded=document.querySelector('.film-expanded');
+  const expandedFrame=expanded?.querySelector('.film-expanded-frame');
   const expandedVideo=expanded?.querySelector('.film-expanded-video');
   const expandedTitle=expanded?.querySelector('.film-expanded-title');
   const expandedClose=expanded?.querySelector('.film-expanded-close');
@@ -98,6 +99,7 @@
 
   const sourceForElement=el=>clones.find(item=>item.el===el)?.source||el;
   const inlineVideoFor=el=>el?.querySelector('.film-inline-video')||null;
+  const inlineImageFor=el=>el?.querySelector('.film-inline-image')||null;
 
   const resetTouchTap=()=>{
     lastTouchTapAt=0;
@@ -128,6 +130,7 @@
       video.load();
       video.remove();
     }
+    inlineImageFor(selectedEl)?.remove();
     selectedEl.querySelector('.film-inline-title')?.remove();
     selectedEl.classList.remove('is-selected');
     selectedEl=null;
@@ -142,47 +145,89 @@
     hideMeta();
 
     const source=sourceForElement(el);
+    const kind=source.dataset.kind||'video';
     selectedEl=el;
     selectedEl.classList.add('is-selected');
 
-    const video=document.createElement('video');
-    video.className='film-inline-video';
-    video.controls=true;
-    video.playsInline=true;
-    video.preload='metadata';
-    video.src=source.dataset.video||'../media/jc-hero.mp4';
-    video.setAttribute('aria-label',`播放 ${source.dataset.title||'Film'}`);
+    if(kind==='image'){
+      const image=document.createElement('img');
+      image.className='film-inline-image';
+      image.src=source.dataset.image||'';
+      image.alt=source.dataset.title||'Film image';
+      image.draggable=false;
+      selectedEl.appendChild(image);
+    }else{
+      const video=document.createElement('video');
+      video.className='film-inline-video';
+      video.controls=true;
+      video.playsInline=true;
+      video.preload='metadata';
+      video.src=source.dataset.video||'../media/jc-hero.mp4';
+      video.setAttribute('aria-label',`播放 ${source.dataset.title||'Film'}`);
 
-    video.addEventListener('pointerup',event=>{
-      if(!['touch','pen'].includes(event.pointerType))return;
-      const controlZone=video.clientHeight-48;
-      if(event.offsetY>=controlZone)return;
-      registerTouchTap(selectedEl,event);
-    });
+      video.addEventListener('pointerup',event=>{
+        if(!['touch','pen'].includes(event.pointerType))return;
+        const controlZone=video.clientHeight-48;
+        if(event.offsetY>=controlZone)return;
+        registerTouchTap(selectedEl,event);
+      });
+
+      selectedEl.appendChild(video);
+    }
 
     const title=document.createElement('div');
     title.className='film-inline-title';
     title.textContent=source.dataset.title||'';
-
-    selectedEl.append(video,title);
+    selectedEl.appendChild(title);
   };
+
+  const expandedImage=()=>expandedFrame?.querySelector('.film-expanded-image')||null;
 
   const openExpanded=el=>{
     if(!expanded||!expandedVideo||!el)return;
     if(selectedEl!==el)selectTile(el);
 
     const source=sourceForElement(el);
+    const kind=source.dataset.kind||'video';
+    expandedSourceEl=el;
+    expandedTitle.textContent=source.dataset.title||'';
+    expanded.classList.add('is-open');
+    expanded.setAttribute('aria-hidden','false');
+
+    if(kind==='image'){
+      expandedVideo.pause();
+      expandedVideo.removeAttribute('src');
+      expandedVideo.load();
+      expandedVideo.hidden=true;
+
+      let image=expandedImage();
+      if(!image&&expandedFrame){
+        image=document.createElement('img');
+        image.className='film-expanded-image';
+        expandedFrame.insertBefore(image,expandedTitle||null);
+      }
+      if(image){
+        image.hidden=false;
+        image.src=source.dataset.image||'';
+        image.alt=source.dataset.title||'Film image';
+      }
+      return;
+    }
+
+    const image=expandedImage();
+    if(image){
+      image.hidden=true;
+      image.removeAttribute('src');
+    }
+    expandedVideo.hidden=false;
+
     const inline=inlineVideoFor(el);
     const sourceUrl=source.dataset.video||'../media/jc-hero.mp4';
     const time=inline?.currentTime||0;
     const wasPlaying=Boolean(inline&&!inline.paused&&!inline.ended);
 
     inline?.pause();
-    expandedSourceEl=el;
     expandedVideo.src=sourceUrl;
-    expandedTitle.textContent=source.dataset.title||'';
-    expanded.classList.add('is-open');
-    expanded.setAttribute('aria-hidden','false');
 
     const applyState=()=>{
       try{expandedVideo.currentTime=time;}catch(_){}
@@ -196,21 +241,36 @@
 
   const closeExpanded=()=>{
     if(!expanded||!expandedVideo)return;
-    const time=expandedVideo.currentTime||0;
-    const wasPlaying=!expandedVideo.paused&&!expandedVideo.ended;
-    expandedVideo.pause();
-    expanded.classList.remove('is-open');
-    expanded.setAttribute('aria-hidden','true');
+    const source=expandedSourceEl?sourceForElement(expandedSourceEl):null;
+    const kind=source?.dataset.kind||'video';
 
-    const inline=inlineVideoFor(expandedSourceEl);
-    if(inline){
-      try{inline.currentTime=time;}catch(_){}
-      if(wasPlaying)inline.play().catch(()=>{});
-      else inline.pause();
+    if(kind==='video'){
+      const time=expandedVideo.currentTime||0;
+      const wasPlaying=!expandedVideo.paused&&!expandedVideo.ended;
+      expandedVideo.pause();
+
+      const inline=inlineVideoFor(expandedSourceEl);
+      if(inline){
+        try{inline.currentTime=time;}catch(_){}
+        if(wasPlaying)inline.play().catch(()=>{});
+        else inline.pause();
+      }
+    }else{
+      expandedVideo.pause();
     }
 
+    expanded.classList.remove('is-open');
+    expanded.setAttribute('aria-hidden','true');
     expandedVideo.removeAttribute('src');
     expandedVideo.load();
+    expandedVideo.hidden=false;
+
+    const image=expandedImage();
+    if(image){
+      image.hidden=true;
+      image.removeAttribute('src');
+    }
+
     expandedSourceEl=null;
     resetTouchTap();
   };
