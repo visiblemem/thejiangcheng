@@ -123,7 +123,7 @@ async function listAcrossPrefixes(bucket, prefixes) {
   return objects;
 }
 
-function itemFromObject(object, prefixes, env, kind, index) {
+function itemFromObject(object, prefixes, env, kind, index, posterKey = null) {
   const meta = object.customMetadata || {};
   const prefix = matchingPrefix(object.key, prefixes);
   const sequence = sequenceFromKey(object.key, prefix);
@@ -131,6 +131,7 @@ function itemFromObject(object, prefixes, env, kind, index) {
   const order = Number(meta.order || sequence || index + 1);
   const published = String(meta.published || 'true').toLowerCase() !== 'false';
   const url = mediaUrl(env.PUBLIC_MEDIA_BASE, object.key);
+  const resolvedPoster = meta.poster || posterKey;
 
   return {
     key: object.key,
@@ -147,7 +148,7 @@ function itemFromObject(object, prefixes, env, kind, index) {
     uploaded: object.uploaded?.toISOString?.() || null,
     contentType: object.httpMetadata?.contentType || null,
     url,
-    poster: kind === 'image' ? url : (meta.poster ? mediaUrl(env.PUBLIC_MEDIA_BASE, meta.poster) : null)
+    poster: kind === 'image' ? url : (resolvedPoster ? mediaUrl(env.PUBLIC_MEDIA_BASE, resolvedPoster) : null)
   };
 }
 
@@ -159,9 +160,25 @@ async function filmIndex(request, env) {
     listAcrossPrefixes(env.MEDIA, imagePrefixes)
   ]);
 
+  // Poster convention: place a same-stem image beside the video.
+  // Example: video/柏拉圖.mp4 + video/柏拉圖.poster.webp
+  // Also accepts video/柏拉圖.webp.
+  const postersByStem = new Map();
+  for (const object of videoObjects) {
+    if (!IMAGE_EXTENSIONS.has(extension(object.key))) continue;
+    let stem = stripExtension(object.key);
+    if (stem.endsWith('.poster')) stem = stem.slice(0, -'.poster'.length);
+    const existing = postersByStem.get(stem);
+    const isExplicitPoster = stripExtension(object.key).endsWith('.poster');
+    if (!existing || isExplicitPoster) postersByStem.set(stem, object.key);
+  }
+
   const videos = videoObjects
     .filter(object => VIDEO_EXTENSIONS.has(extension(object.key)))
-    .map((object, index) => itemFromObject(object, videoPrefixes, env, 'video', index));
+    .map((object, index) => {
+      const stem = stripExtension(object.key);
+      return itemFromObject(object, videoPrefixes, env, 'video', index, postersByStem.get(stem) || null);
+    });
 
   const images = imageObjects
     .filter(object => IMAGE_EXTENSIONS.has(extension(object.key)))
