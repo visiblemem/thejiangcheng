@@ -7,7 +7,8 @@
   "vars": {
     "PUBLIC_MEDIA_BASE": "https://pub-425dbfa66c4d4dcfae898315011833a1.r2.dev",
     "ALLOWED_ORIGINS": "https://visiblemem.github.io",
-    "FILM_PREFIXES": "film/,video/"
+    "FILM_PREFIXES": "film/,video/",
+    "IMAGE_PREFIXES": "pic/"
   },
   "r2_buckets": [
     {
