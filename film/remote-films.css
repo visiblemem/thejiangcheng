@@ -21,6 +21,7 @@
   pointer-events:none;
   transition:opacity .22s ease;
 }
+.film-tile.has-zone-frame .film-zone-preview,
 .film-tile.is-zone-playing .film-zone-preview{opacity:1}
 .film-inline-image{
   position:absolute;
