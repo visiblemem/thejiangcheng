@@ -43,19 +43,6 @@
   reduced.addEventListener?.('change',applyHeroState);
   applyHeroState();
 
-  fetch('./film/film-sprite.txt')
-    .then(r=>r.ok?r.text():Promise.reject(new Error('film sprite unavailable')))
-    .then(data=>{
-      root.style.setProperty('--home-film-sprite',`url("data:image/webp;base64,${data.replace(/\s/g,'')}")`);
-      document.querySelectorAll('.film-preview-card[data-sprite]').forEach(card=>{
-        const index=Math.max(0,Math.min(15,Number(card.dataset.sprite)||0));
-        const col=index%4;
-        const row=Math.floor(index/4);
-        card.style.setProperty('--sprite-pos',`${(col*33.333).toFixed(3)}% ${(row*33.333).toFixed(3)}%`);
-      });
-    })
-    .catch(()=>{});
-
   const setMenuState=open=>{
     if(!menuBtn||!mobileMenu)return;
     menuBtn.setAttribute('aria-expanded',String(open));
