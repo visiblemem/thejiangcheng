@@ -71,6 +71,20 @@ function mediaUrl(base, key) {
   return `${String(base || '').replace(/\/$/, '')}/${encodeObjectKey(key)}`;
 }
 
+function stableHash(value = '') {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function randomFallbackPoster(videoKey, imageObjects) {
+  if (!imageObjects.length) return null;
+  return imageObjects[stableHash(videoKey) % imageObjects.length]?.key || null;
+}
+
 function allowedOrigin(request, env) {
   const origin = request.headers.get('Origin');
   if (!origin) return null;
@@ -160,9 +174,12 @@ async function filmIndex(request, env) {
     listAcrossPrefixes(env.MEDIA, imagePrefixes)
   ]);
 
-  // Poster convention: place a same-stem image beside the video.
-  // Example: video/柏拉圖.mp4 + video/柏拉圖.poster.webp
-  // Also accepts video/柏拉圖.webp.
+  const standaloneImages = imageObjects.filter(object => IMAGE_EXTENSIONS.has(extension(object.key)));
+
+  // Poster priority:
+  // 1. customMetadata.poster
+  // 2. same-stem image beside the video, preferring .poster.*
+  // 3. stable random image from pic/ as temporary fallback
   const postersByStem = new Map();
   for (const object of videoObjects) {
     if (!IMAGE_EXTENSIONS.has(extension(object.key))) continue;
@@ -177,11 +194,12 @@ async function filmIndex(request, env) {
     .filter(object => VIDEO_EXTENSIONS.has(extension(object.key)))
     .map((object, index) => {
       const stem = stripExtension(object.key);
-      return itemFromObject(object, videoPrefixes, env, 'video', index, postersByStem.get(stem) || null);
+      const sameStemPoster = postersByStem.get(stem) || null;
+      const fallbackPoster = sameStemPoster || randomFallbackPoster(object.key, standaloneImages);
+      return itemFromObject(object, videoPrefixes, env, 'video', index, fallbackPoster);
     });
 
-  const images = imageObjects
-    .filter(object => IMAGE_EXTENSIONS.has(extension(object.key)))
+  const images = standaloneImages
     .map((object, index) => itemFromObject(object, imagePrefixes, env, 'image', index));
 
   const items = [...videos, ...images]
