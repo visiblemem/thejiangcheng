@@ -16,8 +16,25 @@ function encodeObjectKey(key) {
   return key.split('/').map(encodeURIComponent).join('/');
 }
 
+function prefixesFromEnv(env) {
+  const value = env.FILM_PREFIXES || env.FILM_PREFIX || 'film/';
+  return String(value)
+    .split(',')
+    .map(prefix => prefix.trim())
+    .filter(Boolean)
+    .map(prefix => prefix.endsWith('/') ? prefix : `${prefix}/`);
+}
+
+function matchingPrefix(key, prefixes) {
+  return prefixes.find(prefix => key.startsWith(prefix)) || prefixes[0] || 'film/';
+}
+
+function relativeKey(key, prefix) {
+  return key.startsWith(prefix) ? key.slice(prefix.length) : key;
+}
+
 function titleFromKey(key, prefix) {
-  const relative = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+  const relative = relativeKey(key, prefix);
   const filename = stripExtension(relative.split('/').pop() || relative);
   return filename
     .replace(/^\d+[\s._-]*/, '')
@@ -27,15 +44,21 @@ function titleFromKey(key, prefix) {
 }
 
 function sequenceFromKey(key, prefix) {
-  const relative = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+  const relative = relativeKey(key, prefix);
   const filename = relative.split('/').pop() || '';
   const match = filename.match(/^(\d+)/);
   return match ? Number(match[1]) : null;
 }
 
 function categoryFromKey(key, prefix) {
-  const relative = key.startsWith(prefix) ? key.slice(prefix.length) : key;
-  const first = relative.split('/')[0]?.toLowerCase() || 'film';
+  const relative = relativeKey(key, prefix);
+  const parts = relative.split('/').filter(Boolean);
+
+  // Existing R2 layout stores Film files directly under video/.
+  // Treat those as generic FILM rather than using the filename as a category.
+  if (prefix === 'video/' && parts.length <= 1) return 'FILM';
+
+  const first = parts[0]?.toLowerCase() || 'film';
   if (first === 'conversation' || first === 'interview') return 'INTERVIEW';
   if (first === 'daily') return 'DAILY';
   return first.toUpperCase();
@@ -83,9 +106,23 @@ async function listAll(bucket, options) {
   return objects;
 }
 
+async function listAcrossPrefixes(bucket, prefixes) {
+  const groups = await Promise.all(prefixes.map(prefix => listAll(bucket, { prefix })));
+  const seen = new Set();
+  const objects = [];
+  for (const group of groups) {
+    for (const object of group) {
+      if (seen.has(object.key)) continue;
+      seen.add(object.key);
+      objects.push(object);
+    }
+  }
+  return objects;
+}
+
 async function filmIndex(request, env) {
-  const prefix = env.FILM_PREFIX || 'film/';
-  const objects = await listAll(env.MEDIA, { prefix });
+  const prefixes = prefixesFromEnv(env);
+  const objects = await listAcrossPrefixes(env.MEDIA, prefixes);
   const imagesByStem = new Map();
 
   for (const object of objects) {
@@ -99,6 +136,7 @@ async function filmIndex(request, env) {
     .filter(object => VIDEO_EXTENSIONS.has(extension(object.key)))
     .map((object, index) => {
       const meta = object.customMetadata || {};
+      const prefix = matchingPrefix(object.key, prefixes);
       const sequence = sequenceFromKey(object.key, prefix);
       const category = meta.category || categoryFromKey(object.key, prefix);
       const stem = stripExtension(object.key);
@@ -108,6 +146,7 @@ async function filmIndex(request, env) {
 
       return {
         key: object.key,
+        sourcePrefix: prefix,
         title: meta.title || titleFromKey(object.key, prefix),
         code: meta.code || `${category} / ${String(sequence || order).padStart(3, '0')}`,
         category,
@@ -131,7 +170,7 @@ async function filmIndex(request, env) {
 
   return new Response(JSON.stringify({
     source: 'cloudflare-r2',
-    prefix,
+    prefixes,
     count: items.length,
     items
   }), { headers });
