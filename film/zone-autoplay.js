@@ -5,47 +5,38 @@
   if(!viewport||!world)return;
 
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-  let activeTile=null;
-  let activeVideo=null;
+  const active=new Map();
   let lastScan=0;
 
-  const zoneRect=()=>{
-    const mobile=innerWidth<=820;
-    const width=innerWidth*(mobile?.72:.48);
-    const height=innerHeight*(mobile?.46:.56);
-    return {
-      left:(innerWidth-width)/2,
-      right:(innerWidth+width)/2,
-      top:(innerHeight-height)/2,
-      bottom:(innerHeight+height)/2,
-      cx:innerWidth/2,
-      cy:innerHeight/2,
-      width,
-      height
-    };
+  // Detection zone = viewport inset by 20% on every side.
+  // Any part of a video tile touching this central 60% x 60% area qualifies.
+  const zoneRect=()=>({
+    left:innerWidth*.20,
+    right:innerWidth*.80,
+    top:innerHeight*.20,
+    bottom:innerHeight*.80
+  });
+
+  const stopTile=tile=>{
+    const video=active.get(tile);
+    if(video){
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      video.remove();
+    }
+    tile?.classList.remove('is-zone-playing');
+    active.delete(tile);
   };
 
-  const stopActive=()=>{
-    if(activeVideo){
-      activeVideo.pause();
-      activeVideo.removeAttribute('src');
-      activeVideo.load();
-      activeVideo.remove();
-    }
-    activeTile?.classList.remove('is-zone-playing');
-    activeTile=null;
-    activeVideo=null;
+  const stopAll=()=>{
+    [...active.keys()].forEach(stopTile);
   };
 
   const playTile=tile=>{
-    if(!tile||tile===activeTile)return;
+    if(!tile||active.has(tile))return;
     const src=tile.dataset.video;
-    if(!src){
-      stopActive();
-      return;
-    }
-
-    stopActive();
+    if(!src)return;
 
     const video=document.createElement('video');
     video.className='film-zone-preview';
@@ -61,65 +52,68 @@
     video.tabIndex=-1;
     video.src=src;
 
-    activeTile=tile;
-    activeVideo=video;
+    active.set(tile,video);
     tile.appendChild(video);
 
     video.addEventListener('playing',()=>{
-      if(activeVideo===video)tile.classList.add('is-zone-playing');
+      if(active.get(tile)===video)tile.classList.add('is-zone-playing');
     },{once:true});
 
     video.play().catch(()=>{
-      if(activeVideo===video)stopActive();
+      if(active.get(tile)===video)stopTile(tile);
     });
   };
 
-  const chooseActive=()=>{
-    if(reducedMotion.matches||document.hidden||expanded?.classList.contains('is-open')||world.querySelector('.film-tile.is-selected')){
-      stopActive();
+  const syncZone=()=>{
+    if(
+      reducedMotion.matches||
+      document.hidden||
+      expanded?.classList.contains('is-open')||
+      world.querySelector('.film-tile.is-selected')
+    ){
+      stopAll();
       return;
     }
 
     const zone=zoneRect();
-    let best=null;
-    let bestScore=Infinity;
+    const wanted=new Set();
 
     world.querySelectorAll('.film-tile[data-video]').forEach(tile=>{
       if(tile.querySelector('.film-inline-video'))return;
       const rect=tile.getBoundingClientRect();
+
       if(rect.right<=0||rect.left>=innerWidth||rect.bottom<=0||rect.top>=innerHeight)return;
 
-      const touchesZone=rect.right>zone.left&&rect.left<zone.right&&rect.bottom>zone.top&&rect.top<zone.bottom;
-      if(!touchesZone)return;
+      const touchesZone=
+        rect.right>zone.left&&
+        rect.left<zone.right&&
+        rect.bottom>zone.top&&
+        rect.top<zone.bottom;
 
-      const cx=rect.left+rect.width/2;
-      const cy=rect.top+rect.height/2;
-      const dx=(cx-zone.cx)/zone.width;
-      const dy=(cy-zone.cy)/zone.height;
-      const score=dx*dx+dy*dy;
-      if(score<bestScore){
-        bestScore=score;
-        best=tile;
-      }
+      if(touchesZone)wanted.add(tile);
     });
 
-    if(best)playTile(best);
-    else stopActive();
+    [...active.keys()].forEach(tile=>{
+      if(!wanted.has(tile))stopTile(tile);
+    });
+
+    wanted.forEach(playTile);
   };
 
   const tick=time=>{
     if(time-lastScan>=70){
       lastScan=time;
-      chooseActive();
+      syncZone();
     }
     requestAnimationFrame(tick);
   };
 
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden)stopActive();
+    if(document.hidden)stopAll();
   });
+
   reducedMotion.addEventListener?.('change',()=>{
-    if(reducedMotion.matches)stopActive();
+    if(reducedMotion.matches)stopAll();
   });
 
   requestAnimationFrame(tick);
