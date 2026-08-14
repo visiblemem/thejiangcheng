@@ -28,17 +28,24 @@
 
   const canvasSizing=()=>{
     const mobile=innerWidth<=820;
-    const gap=mobile?Math.max(7,Math.min(10,innerWidth*.02)):10;
-    const height=mobile?Math.max(118,Math.min(145,innerWidth*.32)):Math.max(220,Math.min(290,innerWidth*.195));
-    return {mobile,gap,height,width:Math.round(height*5/4),perRow:mobile?2:4};
+    if(mobile){
+      const gapX=Math.max(16,Math.min(22,innerWidth*.045));
+      const gapY=Math.max(18,Math.min(26,innerWidth*.05));
+      const height=Math.max(168,Math.min(196,innerWidth*.47));
+      return {mobile,gapX,gapY,height,width:Math.round(height*5/4),perRow:2};
+    }
+    const gapX=10;
+    const gapY=10;
+    const height=Math.max(220,Math.min(290,innerWidth*.195));
+    return {mobile,gapX,gapY,height,width:Math.round(height*5/4),perRow:4};
   };
 
   const buildPacking=()=>{
     const sizing=canvasSizing();
-    const {gap:GAP,height:H,width:W,perRow:PER_ROW}=sizing;
+    const {gapX:GAP_X,gapY:GAP_Y,height:H,width:W,perRow:PER_ROW}=sizing;
     const rows=Math.max(1,Math.ceil(originals.length/PER_ROW));
-    const fullRowW=PER_ROW*W+(PER_ROW-1)*GAP;
-    const contentH=rows*H+(rows-1)*GAP;
+    const fullRowW=PER_ROW*W+(PER_ROW-1)*GAP_X;
+    const contentH=rows*H+(rows-1)*GAP_Y;
     const positions=new Map();
 
     originals.forEach((tile,index)=>{
@@ -47,10 +54,10 @@
       tile.dataset.orientation='five-four';
       tile.classList.remove('landscape','portrait');
       tile.classList.add('five-four');
-      positions.set(tile,{x:slot*(W+GAP)+W/2,y:row*(H+GAP)+H/2,width:W,height:H});
+      positions.set(tile,{x:slot*(W+GAP_X)+W/2,y:row*(H+GAP_Y)+H/2,width:W,height:H});
     });
 
-    return {positions,fullRowW,contentH,periodW:fullRowW+GAP,periodH:contentH+GAP,gap:GAP,height:H,width:W,perRow:PER_ROW};
+    return {positions,fullRowW,contentH,periodW:fullRowW+GAP_X,periodH:contentH+GAP_Y,gapX:GAP_X,gapY:GAP_Y,height:H,width:W,perRow:PER_ROW};
   };
 
   let packing=buildPacking();
