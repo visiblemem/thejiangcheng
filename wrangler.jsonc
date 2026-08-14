@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "thejiangcheng",
+  "main": "cloudflare/media-api/src/index.js",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "vars": {
+    "PUBLIC_MEDIA_BASE": "https://pub-425dbfa66c4d4dcfae898315011833a1.r2.dev",
+    "ALLOWED_ORIGINS": "https://visiblemem.github.io",
+    "FILM_PREFIX": "film/"
+  },
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "jiangchengtest"
+    }
+  ]
+}
