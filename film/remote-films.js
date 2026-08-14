@@ -6,7 +6,7 @@
   const startFilm=()=>{
     if(document.querySelector('script[data-film-runtime]'))return;
     const script=document.createElement('script');
-    script.src='./film.js?v=20260814-r2-2';
+    script.src='./film.js?v=20260814-fivefour-1';
     script.dataset.filmRuntime='true';
     document.body.appendChild(script);
   };
@@ -32,11 +32,8 @@
     tile.dataset.duration=item.duration||'';
     if(item.category)tile.dataset.category=item.category;
 
-    if(kind==='image'){
-      tile.dataset.image=item.url||'';
-    }else{
-      tile.dataset.video=item.url||'';
-    }
+    if(kind==='image')tile.dataset.image=item.url||'';
+    else tile.dataset.video=item.url||'';
 
     const still=document.createElement('div');
     still.className='film-still';
