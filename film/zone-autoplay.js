@@ -8,8 +8,7 @@
   const previews=new Map();
   let lastScan=0;
 
-  // Detection zone = viewport inset by 20% on every side.
-  // Any part of a video tile touching this central 60% x 60% area plays.
+  // Playback zone = viewport inset by 20% on every side.
   const zoneRect=()=>({
     left:innerWidth*.20,
     right:innerWidth*.80,
@@ -17,13 +16,13 @@
     bottom:innerHeight*.80
   });
 
-  // Keep previews alive slightly beyond the viewport so nearby tiles already
-  // have a decoded frame when they slide on screen. Far-away previews unload.
-  const preloadRect=()=>({
-    left:-innerWidth*.25,
-    right:innerWidth*1.25,
-    top:-innerHeight*.25,
-    bottom:innerHeight*1.25
+  // Once a video has played, keep its paused last frame while it remains
+  // on/near screen. Far-away tiles release the decoder and reveal the poster.
+  const keepRect=()=>({
+    left:-innerWidth*.10,
+    right:innerWidth*1.10,
+    top:-innerHeight*.10,
+    bottom:innerHeight*1.10
   });
 
   const intersects=(rect,area)=>
@@ -44,34 +43,16 @@
     previews.delete(tile);
   };
 
-  const markFrameReady=(tile,video)=>{
-    if(previews.get(tile)!==video)return;
-    tile.classList.add('has-zone-frame');
+  const pauseTile=tile=>{
+    const video=previews.get(tile);
+    if(video&&!video.paused)video.pause();
+    tile?.classList.remove('is-zone-playing');
+    if(video&&video.readyState>=2)tile?.classList.add('has-zone-frame');
   };
 
-  const primeFirstFrame=(tile,video)=>{
-    if(video.dataset.primed==='1')return;
-    video.dataset.primed='1';
+  const pauseAll=()=>previews.forEach((_,tile)=>pauseTile(tile));
 
-    const reveal=()=>markFrameReady(tile,video);
-
-    video.addEventListener('loadeddata',reveal,{once:true});
-    video.addEventListener('seeked',()=>{
-      video.pause();
-      reveal();
-    },{once:true});
-
-    video.addEventListener('loadedmetadata',()=>{
-      if(previews.get(tile)!==video)return;
-      const duration=Number.isFinite(video.duration)?video.duration:0;
-      const target=duration>0?Math.min(.08,Math.max(0,duration-.01)):.08;
-      try{
-        if(Math.abs(video.currentTime-target)>.01)video.currentTime=target;
-      }catch(_){}
-    },{once:true});
-  };
-
-  const ensurePreview=tile=>{
+  const ensureVideo=tile=>{
     if(!tile)return null;
     const src=tile.dataset.video;
     if(!src)return null;
@@ -86,7 +67,7 @@
     video.autoplay=false;
     video.loop=true;
     video.playsInline=true;
-    video.preload='auto';
+    video.preload='metadata';
     video.setAttribute('muted','');
     video.setAttribute('playsinline','');
     video.setAttribute('aria-hidden','true');
@@ -95,26 +76,11 @@
 
     previews.set(tile,video);
     tile.appendChild(video);
-    primeFirstFrame(tile,video);
-    video.load();
     return video;
   };
 
-  // Pause only: decoded frame stays visible. Re-entering the zone resumes
-  // from this exact currentTime rather than restarting from zero.
-  const pauseTile=tile=>{
-    const video=previews.get(tile);
-    if(video&&!video.paused)video.pause();
-    tile?.classList.remove('is-zone-playing');
-    if(video&&video.readyState>=2)tile?.classList.add('has-zone-frame');
-  };
-
-  const pauseAll=()=>{
-    previews.forEach((video,tile)=>pauseTile(tile));
-  };
-
   const playTile=tile=>{
-    const video=ensurePreview(tile);
+    const video=ensureVideo(tile);
     if(!video)return;
 
     video.play().then(()=>{
@@ -138,33 +104,22 @@
     }
 
     const zone=zoneRect();
-    const preload=preloadRect();
+    const keep=keepRect();
     const wantedToPlay=new Set();
-    const wantedToKeep=new Set();
 
     world.querySelectorAll('.film-tile[data-video]').forEach(tile=>{
       if(tile.querySelector('.film-inline-video'))return;
       const rect=tile.getBoundingClientRect();
-
-      if(intersects(rect,preload)){
-        wantedToKeep.add(tile);
-        ensurePreview(tile);
-      }
-
       if(intersects(rect,zone))wantedToPlay.add(tile);
     });
 
-    // Once a tile is far outside the screen, release the decoder/memory.
-    [...previews.keys()].forEach(tile=>{
-      if(!wantedToKeep.has(tile))removePreview(tile);
+    previews.forEach((_,tile)=>{
+      const rect=tile.getBoundingClientRect();
+      if(!intersects(rect,keep))removePreview(tile);
+      else if(!wantedToPlay.has(tile))pauseTile(tile);
     });
 
-    // Inside preload area but outside the 20% inset playback zone: freeze.
-    previews.forEach((video,tile)=>{
-      if(!wantedToPlay.has(tile))pauseTile(tile);
-    });
-
-    // Any number of tiles touching the playback zone can run simultaneously.
+    // No MP4 is requested before a tile touches the playback zone.
     if(!reducedMotion.matches)wantedToPlay.forEach(playTile);
   };
 
@@ -179,7 +134,6 @@
   document.addEventListener('visibilitychange',()=>{
     if(document.hidden)pauseAll();
   });
-
   reducedMotion.addEventListener?.('change',()=>{
     if(reducedMotion.matches)pauseAll();
   });
