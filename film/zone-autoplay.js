@@ -5,11 +5,11 @@
   if(!viewport||!world)return;
 
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-  const active=new Map();
+  const previews=new Map();
   let lastScan=0;
 
   // Detection zone = viewport inset by 20% on every side.
-  // Any part of a video tile touching this central 60% x 60% area qualifies.
+  // Any part of a video tile touching this central 60% x 60% area plays.
   const zoneRect=()=>({
     left:innerWidth*.20,
     right:innerWidth*.80,
@@ -17,8 +17,8 @@
     bottom:innerHeight*.80
   });
 
-  const stopTile=tile=>{
-    const video=active.get(tile);
+  const removePreview=tile=>{
+    const video=previews.get(tile);
     if(video){
       video.pause();
       video.removeAttribute('src');
@@ -26,52 +26,71 @@
       video.remove();
     }
     tile?.classList.remove('is-zone-playing');
-    active.delete(tile);
+    previews.delete(tile);
   };
 
-  const stopAll=()=>{
-    [...active.keys()].forEach(stopTile);
+  // Pause only: keep the video element and decoded frame visible.
+  // Re-entering the zone resumes from the same currentTime.
+  const pauseTile=tile=>{
+    const video=previews.get(tile);
+    if(video&&!video.paused)video.pause();
   };
 
-  const playTile=tile=>{
-    if(!tile||active.has(tile))return;
-    const src=tile.dataset.video;
-    if(!src)return;
-
-    const video=document.createElement('video');
-    video.className='film-zone-preview';
-    video.muted=true;
-    video.defaultMuted=true;
-    video.autoplay=true;
-    video.loop=true;
-    video.playsInline=true;
-    video.preload='metadata';
-    video.setAttribute('muted','');
-    video.setAttribute('playsinline','');
-    video.setAttribute('aria-hidden','true');
-    video.tabIndex=-1;
-    video.src=src;
-
-    active.set(tile,video);
-    tile.appendChild(video);
-
-    video.addEventListener('playing',()=>{
-      if(active.get(tile)===video)tile.classList.add('is-zone-playing');
-    },{once:true});
-
-    video.play().catch(()=>{
-      if(active.get(tile)===video)stopTile(tile);
+  const pauseAll=()=>{
+    previews.forEach(video=>{
+      if(!video.paused)video.pause();
     });
   };
 
+  const playTile=tile=>{
+    if(!tile)return;
+    const src=tile.dataset.video;
+    if(!src)return;
+
+    let video=previews.get(tile);
+    if(!video){
+      video=document.createElement('video');
+      video.className='film-zone-preview';
+      video.muted=true;
+      video.defaultMuted=true;
+      video.autoplay=false;
+      video.loop=true;
+      video.playsInline=true;
+      video.preload='metadata';
+      video.setAttribute('muted','');
+      video.setAttribute('playsinline','');
+      video.setAttribute('aria-hidden','true');
+      video.tabIndex=-1;
+      video.src=src;
+
+      previews.set(tile,video);
+      tile.appendChild(video);
+
+      video.addEventListener('loadeddata',()=>{
+        if(previews.get(tile)===video)tile.classList.add('is-zone-playing');
+      },{once:true});
+    }
+
+    if(video.paused){
+      video.play().then(()=>{
+        if(previews.get(tile)===video)tile.classList.add('is-zone-playing');
+      }).catch(()=>{});
+    }
+  };
+
   const syncZone=()=>{
+    // Remove previews whose clone/tile no longer exists after a layout rebuild.
+    [...previews.keys()].forEach(tile=>{
+      if(!tile.isConnected)removePreview(tile);
+    });
+
     if(
       reducedMotion.matches||
       document.hidden||
       expanded?.classList.contains('is-open')||
       world.querySelector('.film-tile.is-selected')
     ){
-      stopAll();
+      pauseAll();
       return;
     }
 
@@ -93,10 +112,12 @@
       if(touchesZone)wanted.add(tile);
     });
 
-    [...active.keys()].forEach(tile=>{
-      if(!wanted.has(tile))stopTile(tile);
+    // Leaving the zone freezes on the current decoded frame.
+    previews.forEach((video,tile)=>{
+      if(!wanted.has(tile))pauseTile(tile);
     });
 
+    // Entering/re-entering the zone starts or resumes playback.
     wanted.forEach(playTile);
   };
 
@@ -109,11 +130,11 @@
   };
 
   document.addEventListener('visibilitychange',()=>{
-    if(document.hidden)stopAll();
+    if(document.hidden)pauseAll();
   });
 
   reducedMotion.addEventListener?.('change',()=>{
-    if(reducedMotion.matches)stopAll();
+    if(reducedMotion.matches)pauseAll();
   });
 
   requestAnimationFrame(tick);
