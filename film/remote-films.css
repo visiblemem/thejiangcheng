@@ -1,0 +1,5 @@
+.film-still{
+  background-image:var(--tile-poster,var(--film-sprite));
+  background-size:var(--tile-poster-size,400% 400%);
+  background-position:var(--tile-poster-pos,var(--sprite-pos));
+}
