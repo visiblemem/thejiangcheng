@@ -40,6 +40,7 @@
     const visual=item.poster||(kind==='image'?item.url:'');
     if(visual){
       tile.classList.add('has-poster');
+      if(kind==='video')tile.dataset.poster=visual;
       still.style.setProperty('--tile-poster',`url("${String(visual).replace(/"/g,'\\"')}")`);
       still.style.setProperty('--tile-poster-size','cover');
       still.style.setProperty('--tile-poster-pos','center');
