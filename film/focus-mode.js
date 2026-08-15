@@ -7,28 +7,23 @@
   let focused=null;
   let lastRatio='';
   let scheduled=false;
-  let resizeObserver=null;
   let backgroundPointer=null;
 
   const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 
   const clearFocusVisual=()=>{
     if(focused){
-      focused.classList.remove('is-focus-centered','is-focus-measuring');
-      focused.style.removeProperty('--focus-x');
-      focused.style.removeProperty('--focus-y');
+      focused.classList.remove('is-focus-centered');
       focused.style.removeProperty('--focus-w');
       focused.style.removeProperty('--focus-h');
     }
-    resizeObserver?.disconnect();
-    resizeObserver=null;
     focused=null;
     lastRatio='';
     page.classList.remove('has-focus');
     document.documentElement.classList.remove('film-focus-open');
   };
 
-  const measureAndCenter=()=>{
+  const sizeFocusedTile=()=>{
     scheduled=false;
     const selected=world.querySelector('.film-tile.is-selected');
     if(!selected){
@@ -41,25 +36,24 @@
       focused=selected;
       page.classList.add('has-focus');
       document.documentElement.classList.add('film-focus-open');
-      resizeObserver=new ResizeObserver(()=>schedule());
-      resizeObserver.observe(focused);
+      focused.classList.add('is-focus-centered');
     }
 
     const ratioKey=focused.dataset.selectedRatio||'';
     lastRatio=ratioKey;
 
-    // Measure the tile at its normal canvas position/size, then overlay focus sizing.
-    focused.classList.add('is-focus-measuring');
-    focused.classList.remove('is-focus-centered');
-    const rect=focused.getBoundingClientRect();
-
+    // film.js keeps the normal canvas size in the element's inline width/height
+    // even while Focus CSS overrides the rendered size. Use those values so
+    // playback/layout changes cannot disturb the viewport-centred position.
+    const baseW=Math.max(1,parseFloat(focused.style.width)||focused.offsetWidth||1);
+    const baseH=Math.max(1,parseFloat(focused.style.height)||focused.offsetHeight||1);
     const mobile=innerWidth<=820;
     const maxW=innerWidth*(mobile?.88:.64);
     const maxH=innerHeight*(mobile?.62:.68);
     const naturalRatio=Number(focused.dataset.selectedRatio||0);
     const ratio=Number.isFinite(naturalRatio)&&naturalRatio>0
       ? naturalRatio
-      : (rect.width/Math.max(1,rect.height));
+      : baseW/baseH;
 
     let targetW=maxW;
     let targetH=targetW/ratio;
@@ -68,31 +62,20 @@
       targetW=targetH*ratio;
     }
 
-    // Focus must feel enlarged, but never become a fullscreen takeover.
-    const baseW=Math.max(1,rect.width);
-    const baseH=Math.max(1,rect.height);
     const desiredScale=Math.min(targetW/baseW,targetH/baseH);
     const scale=clamp(desiredScale,mobile?1.22:1.30,mobile?1.72:2.20);
     targetW=baseW*scale;
     targetH=baseH*scale;
 
-    const cx=rect.left+rect.width/2;
-    const cy=rect.top+rect.height/2;
-    const dx=innerWidth/2-cx;
-    const dy=innerHeight/2-cy;
-
-    focused.style.setProperty('--focus-x',`${dx}px`);
-    focused.style.setProperty('--focus-y',`${dy}px`);
     focused.style.setProperty('--focus-w',`${Math.round(targetW)}px`);
     focused.style.setProperty('--focus-h',`${Math.round(targetH)}px`);
-    focused.classList.remove('is-focus-measuring');
     focused.classList.add('is-focus-centered');
   };
 
   const schedule=()=>{
     if(scheduled)return;
     scheduled=true;
-    requestAnimationFrame(measureAndCenter);
+    requestAnimationFrame(sizeFocusedTile);
   };
 
   const observer=new MutationObserver(()=>{
@@ -101,6 +84,15 @@
     if(selected!==focused||ratio!==lastRatio)schedule();
   });
   observer.observe(world,{subtree:true,attributes:true,attributeFilter:['class','data-selected-ratio']});
+
+  // Native video state changes can alter intrinsic dimensions/control chrome on
+  // mobile Safari. Re-apply focus sizing, while CSS keeps the tile locked to
+  // the exact viewport centre independently of the moving infinite canvas.
+  ['loadedmetadata','loadeddata','play','durationchange'].forEach(type=>{
+    world.addEventListener(type,event=>{
+      if(event.target.closest?.('.film-tile.is-selected'))schedule();
+    },true);
+  });
 
   addEventListener('resize',schedule,{passive:true});
 
