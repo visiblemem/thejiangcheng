@@ -1,5 +1,5 @@
 .film-tile{
-  transition:transform .46s cubic-bezier(.22,.78,.18,1),translate .46s cubic-bezier(.22,.78,.18,1),width .46s cubic-bezier(.22,.78,.18,1),height .46s cubic-bezier(.22,.78,.18,1),opacity .28s ease!important;
+  transition:width .46s cubic-bezier(.22,.78,.18,1),height .46s cubic-bezier(.22,.78,.18,1),opacity .28s ease!important;
 }
 .film-canvas-page.has-focus .film-tile:not(.is-focus-centered){
   opacity:.24;
@@ -12,6 +12,16 @@
   z-index:78!important;
   opacity:1!important;
   box-shadow:0 22px 70px rgba(0,0,0,.42);
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  isolation:isolate;
+}
+.film-tile.is-focus-centered .film-still,
+.film-tile.is-focus-centered .film-inline-video,
+.film-tile.is-focus-centered .film-inline-image{
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  transform:translateZ(0);
 }
 .film-tile.is-focus-centered .film-inline-title{
   top:calc(100% + 10px);
@@ -22,7 +32,10 @@
 }
 @media(max-width:820px){
   .film-canvas-page.has-focus .film-tile:not(.is-focus-centered){opacity:.18}
-  .film-tile.is-focus-centered{box-shadow:0 18px 56px rgba(0,0,0,.46)}
+  .film-tile.is-focus-centered{
+    box-shadow:0 18px 56px rgba(0,0,0,.46);
+    transition:width .32s cubic-bezier(.22,.78,.18,1),height .32s cubic-bezier(.22,.78,.18,1),opacity .2s ease!important;
+  }
 }
 @media(prefers-reduced-motion:reduce){
   .film-tile{transition:none!important}
