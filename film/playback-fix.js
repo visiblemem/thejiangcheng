@@ -3,6 +3,10 @@
     if(!video||video.dataset.jcPlaybackGuard==='1')return;
     video.dataset.jcPlaybackGuard='1';
 
+    const tile=video.closest('.film-tile');
+    const poster=tile?.dataset.poster||'';
+    if(poster&&!video.poster)video.poster=poster;
+
     // Native video controls own these gestures. Prevent Film canvas tap/double-tap
     // handlers from interpreting Play / Pause / scrub actions as canvas gestures.
     video.addEventListener('pointerup',event=>{
