@@ -8,7 +8,6 @@
   const previews=new Map();
   let lastScan=0;
 
-  // Playback zone = viewport inset by 20% on every side.
   const zoneRect=()=>({
     left:innerWidth*.20,
     right:innerWidth*.80,
@@ -16,8 +15,6 @@
     bottom:innerHeight*.80
   });
 
-  // Once a video has played, keep its paused last frame while it remains
-  // on/near screen. Far-away tiles release the decoder and reveal the poster.
   const keepRect=()=>({
     left:-innerWidth*.10,
     right:innerWidth*1.10,
@@ -94,9 +91,13 @@
       if(!tile.isConnected)removePreview(tile);
     });
 
+    const floating=document.documentElement.classList.contains('film-float-preparing')||
+      document.documentElement.classList.contains('film-float-open');
+
     if(
       document.hidden||
-      expanded?.classList.contains('is-open')
+      expanded?.classList.contains('is-open')||
+      floating
     ){
       pauseAll();
       return;
@@ -117,7 +118,6 @@
       else if(!wantedToPlay.has(tile))pauseTile(tile);
     });
 
-    // No MP4 is requested before a tile touches the playback zone.
     if(!reducedMotion.matches)wantedToPlay.forEach(playTile);
   };
 
