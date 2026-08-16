@@ -19,6 +19,16 @@
   const prev=document.querySelector('.work-prev');
   const next=document.querySelector('.work-next');
 
+  let loadingTimer=setTimeout(()=>{
+    if(object.hidden&&errorView.hidden)loading.hidden=false;
+  },700);
+
+  const stopLoading=()=>{
+    clearTimeout(loadingTimer);
+    loadingTimer=null;
+    loading.hidden=true;
+  };
+
   const fallbackDescription=item=>`「${item?.title||'這支作品'}」保留了一段沒有被完整說明的時間。影像更在意人物、空間與停頓之間的關係，讓觀看本身慢慢形成故事。`;
 
   const copyText=async text=>{
@@ -95,7 +105,7 @@
   };
 
   const render=(item,videos,index)=>{
-    loading.hidden=true;
+    stopLoading();
     errorView.hidden=true;
     object.hidden=false;
 
@@ -145,7 +155,7 @@
   };
 
   const fail=()=>{
-    loading.hidden=true;
+    stopLoading();
     object.hidden=true;
     errorView.hidden=false;
   };
