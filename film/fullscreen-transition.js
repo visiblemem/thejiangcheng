@@ -144,18 +144,22 @@
     if(Math.hypot(event.clientX-press.x,event.clientY-press.y)>7)moved=true;
   },true);
 
-  viewport.addEventListener('pointercancel',event=>{
-    if(press&&event.pointerId===press.id){press=null;moved=false;}
-  },true);
-
-  viewport.addEventListener('click',event=>{
-    const tile=event.target.closest?.('.film-tile[data-video]');
-    if(!tile||!press||press.tile!==tile||moved){press=null;moved=false;return;}
+  viewport.addEventListener('pointerup',event=>{
+    if(!press||event.pointerId!==press.id)return;
+    const tile=press.tile;
+    const shouldOpen=!moved;
     press=null;
     moved=false;
-    event.preventDefault();
-    event.stopPropagation();
-    open(tile);
+    if(!shouldOpen)return;
+
+    // Let film.js finish its pointerup bookkeeping first, then launch from the
+    // exact tile position. This is more reliable than waiting for a click event
+    // on iOS Safari, where pointer capture can suppress/retarget click.
+    setTimeout(()=>open(tile),0);
+  },true);
+
+  viewport.addEventListener('pointercancel',event=>{
+    if(press&&event.pointerId===press.id){press=null;moved=false;}
   },true);
 
   addEventListener('keydown',event=>{
