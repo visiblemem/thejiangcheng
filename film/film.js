@@ -6,11 +6,6 @@
   const metaCode=meta?.querySelector('.hover-code');
   const metaTitle=meta?.querySelector('.hover-title');
   const metaDuration=meta?.querySelector('.hover-duration');
-  const expanded=document.querySelector('.film-expanded');
-  const expandedFrame=expanded?.querySelector('.film-expanded-frame');
-  const expandedVideo=expanded?.querySelector('.film-expanded-video');
-  const expandedTitle=expanded?.querySelector('.film-expanded-title');
-  const expandedClose=expanded?.querySelector('.film-expanded-close');
   if(!viewport||!world)return;
 
   fetch('./film-sprite.txt')
@@ -57,16 +52,25 @@
       positions.set(tile,{x:slot*(W+GAP_X)+W/2,y:row*(H+GAP_Y)+H/2,width:W,height:H});
     });
 
-    return {positions,fullRowW,contentH,periodW:fullRowW+GAP_X,periodH:contentH+GAP_Y,gapX:GAP_X,gapY:GAP_Y,height:H,width:W,perRow:PER_ROW};
+    return {
+      positions,
+      fullRowW,
+      contentH,
+      periodW:fullRowW+GAP_X,
+      periodH:contentH+GAP_Y,
+      gapX:GAP_X,
+      gapY:GAP_Y,
+      height:H,
+      width:W,
+      perRow:PER_ROW
+    };
   };
 
   let packing=buildPacking();
   const clones=[];
   let selectedEl=null;
-  let expandedSourceEl=null;
-  let lastTouchTapAt=0;
-  let lastTouchTapSource=null;
   let centerTween=null;
+  let floatState=null;
 
   function showMeta(tile){
     if(!meta||!tile||selectedEl)return;
@@ -79,13 +83,24 @@
 
   const cloneRecordFor=el=>clones.find(item=>item.el===el)||null;
   const sourceForElement=el=>cloneRecordFor(el)?.source||el;
-  const resetTouchTap=()=>{lastTouchTapAt=0;lastTouchTapSource=null;};
+
+  const removeFloatPlayer=()=>{
+    const state=floatState;
+    floatState=null;
+    document.documentElement.classList.remove('film-float-preparing','film-float-open');
+
+    if(!state)return;
+    state.video.pause();
+    state.video.removeAttribute('src');
+    state.video.load();
+    state.overlay.remove();
+  };
 
   const clearSelection=()=>{
+    removeFloatPlayer();
     if(selectedEl)selectedEl.classList.remove('is-selected');
     selectedEl=null;
     centerTween=null;
-    resetTouchTap();
   };
 
   const easeOutCubic=t=>1-Math.pow(1-t,3);
@@ -113,82 +128,92 @@
     };
   };
 
+  const prepareFloatPlayer=el=>{
+    const source=sourceForElement(el);
+    if((source.dataset.kind||'video')!=='video')return;
+
+    const src=source.dataset.video||'';
+    if(!src)return;
+
+    removeFloatPlayer();
+
+    const rect=el.getBoundingClientRect();
+    const overlay=document.createElement('div');
+    overlay.className='film-float-overlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label',`播放 ${source.dataset.title||'Film'}`);
+
+    const frame=document.createElement('div');
+    frame.className='film-float-frame';
+    frame.style.width=`${Math.max(1,rect.width)}px`;
+    frame.style.height=`${Math.max(1,rect.height)}px`;
+
+    const video=document.createElement('video');
+    video.className='film-float-video';
+    video.controls=true;
+    video.playsInline=true;
+    video.preload='auto';
+    video.src=src;
+    if(source.dataset.poster)video.poster=source.dataset.poster;
+
+    const preview=el.querySelector('.film-zone-preview');
+    const startTime=preview&&Number.isFinite(preview.currentTime)?preview.currentTime:0;
+
+    frame.appendChild(video);
+    overlay.appendChild(frame);
+    document.body.appendChild(overlay);
+
+    floatState={overlay,frame,video,tile:el,open:false};
+    document.documentElement.classList.add('film-float-preparing');
+
+    overlay.addEventListener('click',event=>{
+      if(event.target!==overlay)return;
+      event.preventDefault();
+      clearSelection();
+    });
+
+    frame.addEventListener('click',event=>event.stopPropagation());
+
+    video.addEventListener('loadedmetadata',()=>{
+      if(startTime>0){
+        try{video.currentTime=startTime;}catch(_){}
+      }
+    },{once:true});
+
+    const attemptPlay=()=>{
+      const promise=video.play();
+      promise?.catch?.(()=>{
+        video.muted=true;
+        video.play().catch(()=>{});
+      });
+    };
+    attemptPlay();
+  };
+
+  const showFloatPlayer=el=>{
+    if(!floatState||floatState.tile!==el)return;
+
+    const rect=el.getBoundingClientRect();
+    floatState.frame.style.width=`${Math.max(1,rect.width)}px`;
+    floatState.frame.style.height=`${Math.max(1,rect.height)}px`;
+    floatState.open=true;
+
+    document.documentElement.classList.remove('film-float-preparing');
+    document.documentElement.classList.add('film-float-open');
+    requestAnimationFrame(()=>floatState?.overlay.classList.add('is-open'));
+  };
+
   const selectTile=el=>{
     if(!el)return;
-    if(selectedEl&&selectedEl!==el)selectedEl.classList.remove('is-selected');
+    if(selectedEl!==el)clearSelection();
+
     selectedEl=el;
     selectedEl.classList.add('is-selected');
     hideMeta();
+
     centerTile(el);
-  };
-
-  const registerTouchTap=(el,event)=>{
-    if(!el||!event||!['touch','pen'].includes(event.pointerType))return false;
-    const source=sourceForElement(el);
-    const now=performance.now();
-    const isDouble=lastTouchTapSource===source&&(now-lastTouchTapAt)<=300;
-    lastTouchTapSource=source;
-    lastTouchTapAt=now;
-    if(isDouble){resetTouchTap();openExpanded(el);return true;}
-    return false;
-  };
-
-  const expandedImage=()=>expandedFrame?.querySelector('.film-expanded-image')||null;
-
-  const openExpanded=el=>{
-    if(!expanded||!expandedVideo||!el)return;
-    const source=sourceForElement(el);
-    const kind=source.dataset.kind||'video';
-    expandedSourceEl=el;
-    expandedTitle.textContent=source.dataset.title||'';
-    expanded.classList.add('is-open');
-    expanded.setAttribute('aria-hidden','false');
-
-    if(kind==='image'){
-      expandedVideo.pause();
-      expandedVideo.removeAttribute('src');
-      expandedVideo.load();
-      expandedVideo.hidden=true;
-      let image=expandedImage();
-      if(!image&&expandedFrame){
-        image=document.createElement('img');
-        image.className='film-expanded-image';
-        expandedFrame.insertBefore(image,expandedTitle||null);
-      }
-      if(image){
-        image.hidden=false;
-        image.src=source.dataset.image||'';
-        image.alt=source.dataset.title||'Film image';
-      }
-      return;
-    }
-
-    const image=expandedImage();
-    if(image){image.hidden=true;image.removeAttribute('src');}
-    expandedVideo.hidden=false;
-    const preview=el.querySelector('.film-zone-preview');
-    const time=preview?.currentTime||0;
-    expandedVideo.src=source.dataset.video||'../media/jc-hero.mp4';
-    const applyState=()=>{
-      try{expandedVideo.currentTime=time;}catch(_){}
-      expandedVideo.removeEventListener('loadedmetadata',applyState);
-    };
-    if(expandedVideo.readyState>=1)applyState();
-    else expandedVideo.addEventListener('loadedmetadata',applyState);
-  };
-
-  const closeExpanded=()=>{
-    if(!expanded||!expandedVideo)return;
-    expandedVideo.pause();
-    expanded.classList.remove('is-open');
-    expanded.setAttribute('aria-hidden','true');
-    expandedVideo.removeAttribute('src');
-    expandedVideo.load();
-    expandedVideo.hidden=false;
-    const image=expandedImage();
-    if(image){image.hidden=true;image.removeAttribute('src');}
-    expandedSourceEl=null;
-    resetTouchTap();
+    prepareFloatPlayer(el);
   };
 
   const bindCloneHover=(el,source)=>{
@@ -197,10 +222,10 @@
   };
 
   const rebuildClones=()=>{
-    closeExpanded();
     clearSelection();
     [...world.querySelectorAll('.film-tile[aria-hidden="true"]')].forEach(el=>el.remove());
     clones.length=0;
+
     for(let ty=-2;ty<=2;ty++){
       for(let tx=-2;tx<=2;tx++){
         originals.forEach(source=>{
@@ -217,11 +242,29 @@
     }
   };
 
-  const centerOffsets=()=>({x:innerWidth*.5-packing.fullRowW*.5,y:innerHeight*.5-packing.contentH*.5});
+  const centerOffsets=()=>({
+    x:innerWidth*.5-packing.fullRowW*.5,
+    y:innerHeight*.5-packing.contentH*.5
+  });
+
   let start=centerOffsets();
-  let offsetX=start.x,offsetY=start.y,velX=0,velY=0;
-  let dragging=false,moved=false,pointerId=null,lastX=0,lastY=0,lastT=0,pressTile=null,pressPointerType='mouse';
-  const DRAG_GAIN=.42,THROW_GAIN=.68,FRICTION=.94,WHEEL_GAIN=.22,STOP_SPEED=.012;
+  let offsetX=start.x;
+  let offsetY=start.y;
+  let velX=0;
+  let velY=0;
+  let dragging=false;
+  let moved=false;
+  let pointerId=null;
+  let lastX=0;
+  let lastY=0;
+  let lastT=0;
+  let pressTile=null;
+
+  const DRAG_GAIN=.42;
+  const THROW_GAIN=.68;
+  const FRICTION=.94;
+  const WHEEL_GAIN=.22;
+  const STOP_SPEED=.012;
 
   const wrapOffset=(value,size)=>{
     while(value>size)value-=size;
@@ -234,8 +277,10 @@
     clones.forEach(({el,source,tx,ty})=>{
       const p=positions.get(source);
       if(!p)return;
+
       el.style.width=`${p.width}px`;
       el.style.height=`${p.height}px`;
+
       const x=p.x+tx*periodW+offsetX;
       const y=p.y+ty*periodH+offsetY;
       el.style.transform=`translate3d(${x}px,${y}px,0) translate(-50%,-50%)`;
@@ -244,13 +289,25 @@
   };
 
   const tick=time=>{
-    if(!dragging&&!expanded?.classList.contains('is-open')){
+    if(!dragging){
       if(centerTween){
         const progress=Math.min(1,(time-centerTween.started)/centerTween.duration);
         const eased=easeOutCubic(progress);
         offsetX=centerTween.fromX+(centerTween.toX-centerTween.fromX)*eased;
         offsetY=centerTween.fromY+(centerTween.toY-centerTween.fromY)*eased;
-        if(progress>=1)centerTween=null;
+
+        if(progress>=1){
+          centerTween=null;
+
+          if(selectedEl){
+            const source=sourceForElement(selectedEl);
+            if((source.dataset.kind||'video')==='video')showFloatPlayer(selectedEl);
+            else{
+              selectedEl.classList.remove('is-selected');
+              selectedEl=null;
+            }
+          }
+        }
       }else if(selectedEl){
         velX=0;
         velY=0;
@@ -259,12 +316,15 @@
         offsetY+=velY;
         velX*=FRICTION;
         velY*=FRICTION;
+
         if(Math.abs(velX)<STOP_SPEED)velX=0;
         if(Math.abs(velY)<STOP_SPEED)velY=0;
+
         offsetX=wrapOffset(offsetX,packing.periodW);
         offsetY=wrapOffset(offsetY,packing.periodH);
       }
     }
+
     layout();
     requestAnimationFrame(tick);
   };
@@ -274,9 +334,9 @@
     tile.addEventListener('mouseleave',hideMeta);
     tile.addEventListener('focus',()=>showMeta(tile));
     tile.addEventListener('blur',hideMeta);
-    tile.addEventListener('keydown',e=>{
-      if(e.key==='Enter'||e.key===' '){
-        e.preventDefault();
+    tile.addEventListener('keydown',event=>{
+      if(event.key==='Enter'||event.key===' '){
+        event.preventDefault();
         selectTile(tile);
       }
     });
@@ -284,48 +344,54 @@
 
   rebuildClones();
 
-  viewport.addEventListener('pointerdown',e=>{
-    if(expanded?.classList.contains('is-open'))return;
-    if(e.pointerType==='mouse'&&e.button!==0)return;
+  viewport.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+
     dragging=true;
     moved=false;
-    pointerId=e.pointerId;
-    pressPointerType=e.pointerType;
-    lastX=e.clientX;
-    lastY=e.clientY;
-    lastT=e.timeStamp;
+    pointerId=event.pointerId;
+    lastX=event.clientX;
+    lastY=event.clientY;
+    lastT=event.timeStamp;
     velX=0;
     velY=0;
     centerTween=null;
-    pressTile=e.target.closest?.('.film-tile')||null;
+    pressTile=event.target.closest?.('.film-tile')||null;
+
     viewport.classList.add('is-dragging');
     viewport.setPointerCapture?.(pointerId);
   });
 
-  viewport.addEventListener('pointermove',e=>{
-    if(!dragging||e.pointerId!==pointerId)return;
-    const rawDx=e.clientX-lastX;
-    const rawDy=e.clientY-lastY;
-    const dt=Math.max(1,e.timeStamp-lastT);
+  viewport.addEventListener('pointermove',event=>{
+    if(!dragging||event.pointerId!==pointerId)return;
+
+    const rawDx=event.clientX-lastX;
+    const rawDy=event.clientY-lastY;
+    const dt=Math.max(1,event.timeStamp-lastT);
+
     if(Math.hypot(rawDx,rawDy)>2){
       if(!moved&&selectedEl)clearSelection();
       moved=true;
     }
+
     const dx=rawDx*DRAG_GAIN;
     const dy=rawDy*DRAG_GAIN;
     offsetX+=dx;
     offsetY+=dy;
     velX=velX*.58+(dx/dt*16)*.42;
     velY=velY*.58+(dy/dt*16)*.42;
-    lastX=e.clientX;
-    lastY=e.clientY;
-    lastT=e.timeStamp;
+
+    lastX=event.clientX;
+    lastY=event.clientY;
+    lastT=event.timeStamp;
+
     if(moved)page?.classList.add('has-moved');
-    e.preventDefault();
+    event.preventDefault();
   },{passive:false});
 
-  const endPointer=e=>{
-    if(!dragging||e.pointerId!==pointerId)return;
+  const endPointer=event=>{
+    if(!dragging||event.pointerId!==pointerId)return;
+
     dragging=false;
     viewport.classList.remove('is-dragging');
     try{viewport.releasePointerCapture?.(pointerId)}catch(_){}
@@ -333,24 +399,14 @@
     if(moved){
       velX*=THROW_GAIN;
       velY*=THROW_GAIN;
-      resetTouchTap();
     }else if(pressTile){
-      if(['touch','pen'].includes(pressPointerType)&&selectedEl===pressTile){
-        if(!registerTouchTap(pressTile,e))selectTile(pressTile);
-      }else{
-        selectTile(pressTile);
-        if(['touch','pen'].includes(pressPointerType)){
-          lastTouchTapSource=sourceForElement(pressTile);
-          lastTouchTapAt=performance.now();
-        }
-      }
+      selectTile(pressTile);
     }else{
       clearSelection();
     }
 
     pointerId=null;
     pressTile=null;
-    pressPointerType='mouse';
   };
 
   viewport.addEventListener('pointerup',endPointer);
@@ -358,46 +414,37 @@
     dragging=false;
     pointerId=null;
     pressTile=null;
-    pressPointerType='mouse';
     velX=0;
     velY=0;
     centerTween=null;
-    resetTouchTap();
+    clearSelection();
     viewport.classList.remove('is-dragging');
   });
 
-  viewport.addEventListener('dblclick',e=>{
-    const tile=e.target.closest?.('.film-tile');
-    if(!tile)return;
-    e.preventDefault();
-    e.stopPropagation();
-    openExpanded(tile);
-  });
-
-  viewport.addEventListener('wheel',e=>{
-    if(expanded?.classList.contains('is-open'))return;
+  viewport.addEventListener('wheel',event=>{
     if(selectedEl)clearSelection();
     centerTween=null;
-    const dx=-(e.deltaX||e.deltaY*.45)*WHEEL_GAIN;
-    const dy=-e.deltaY*WHEEL_GAIN;
+
+    const dx=-(event.deltaX||event.deltaY*.45)*WHEEL_GAIN;
+    const dy=-event.deltaY*WHEEL_GAIN;
     offsetX+=dx;
     offsetY+=dy;
     velX=velX*.45+dx*.09;
     velY=velY*.45+dy*.09;
+
     page?.classList.add('has-moved');
-    e.preventDefault();
+    event.preventDefault();
   },{passive:false});
 
-  expandedClose?.addEventListener('click',closeExpanded);
-  expanded?.addEventListener('click',e=>{if(e.target===expanded)closeExpanded();});
-  addEventListener('keydown',e=>{
-    if(e.key!=='Escape')return;
-    if(expanded?.classList.contains('is-open'))closeExpanded();
-    else clearSelection();
+  addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&selectedEl){
+      event.preventDefault();
+      clearSelection();
+    }
   });
 
   addEventListener('resize',()=>{
-    if(expanded?.classList.contains('is-open'))return;
+    clearSelection();
     packing=buildPacking();
     rebuildClones();
     start=centerOffsets();
