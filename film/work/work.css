@@ -8,6 +8,7 @@ body.film-work-page{min-height:100svh;overflow-x:hidden}
 
 .work-main{position:relative;z-index:2;width:min(1440px,calc(100vw - 48px));margin:0 auto;padding:112px 0 72px}
 .work-loading{min-height:65svh;display:grid;place-items:center;font:8px/1 "Courier New",monospace;letter-spacing:.16em;color:rgba(17,17,17,.45)}
+.work-loading[hidden]{display:none!important}
 
 .work-object{width:100%}
 .work-media{display:flex;justify-content:center;align-items:center;width:100%;min-height:42svh;margin-bottom:54px}
