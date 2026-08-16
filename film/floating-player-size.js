@@ -3,7 +3,9 @@
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   let passEscape=false;
 
-  const returnDuration=()=>innerWidth<=820?340:400;
+  const timings=()=>innerWidth<=820
+    ? {shrink:300,fadeDelay:215,fade:140,finish:370}
+    : {shrink:360,fadeDelay:260,fade:170,finish:450};
 
   const applySize=video=>{
     if(!video?.videoWidth||!video?.videoHeight)return;
@@ -35,13 +37,12 @@
 
   const beginReturn=overlay=>{
     if(!overlay||overlay.classList.contains('is-returning'))return;
-    const frame=overlay.querySelector('.film-float-frame');
     const video=overlay.querySelector('.film-float-video');
+    const t=timings();
 
     video?.pause();
     overlay.classList.add('is-returning');
     overlay.classList.remove('is-open');
-    frame?.classList.add('is-returning');
     document.documentElement.classList.remove('film-float-open');
 
     if(reducedMotion.matches){
@@ -49,7 +50,11 @@
       return;
     }
 
-    setTimeout(()=>finishReturn(overlay),returnDuration());
+    setTimeout(()=>{
+      if(overlay.isConnected)overlay.classList.add('is-return-fade');
+    },t.fadeDelay);
+
+    setTimeout(()=>finishReturn(overlay),t.finish);
   };
 
   const bind=video=>{
@@ -91,7 +96,7 @@
 
   addEventListener('keydown',event=>{
     if(passEscape||event.key!=='Escape')return;
-    const overlay=document.querySelector('.film-float-overlay.is-open');
+    const overlay=document.querySelector('.film-float-overlay.is-open, .film-float-overlay:not(.is-returning)');
     if(!overlay)return;
 
     event.preventDefault();
