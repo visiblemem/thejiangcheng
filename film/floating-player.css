@@ -33,8 +33,9 @@ html.film-float-open .film-float-overlay,
   cursor:default;
   transform-origin:center;
   backface-visibility:hidden;
-  will-change:transform;
+  will-change:transform,opacity;
   contain:layout paint style;
+  opacity:1;
 }
 .film-float-frame.has-intrinsic-size{
   width:var(--float-native-w)!important;
@@ -48,6 +49,10 @@ html.film-float-open .film-float-overlay,
 .film-float-frame.is-flip-return{
   transform:translate3d(0,0,0) scale(var(--float-start-scale,1));
   transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+.film-float-frame.is-handoff{
+  opacity:0;
+  transition:opacity .075s linear;
 }
 .film-float-video{
   display:block;
@@ -66,6 +71,7 @@ html.film-float-open .film-float-overlay,
   .film-float-overlay.is-returning.is-return-fade{transition-duration:.12s}
   .film-float-frame.is-flip-open{transition-duration:.27s}
   .film-float-frame.is-flip-return{transition-duration:.24s}
+  .film-float-frame.is-handoff{transition-duration:.06s}
 }
 @media(prefers-reduced-motion:reduce){
   .film-float-overlay,.film-float-frame{transition:none!important}
