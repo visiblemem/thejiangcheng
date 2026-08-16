@@ -6,7 +6,7 @@
   const startFilm=()=>{
     if(document.querySelector('script[data-film-runtime]'))return;
     const script=document.createElement('script');
-    script.src='./film.js?v=20260816-center-canvas-1';
+    script.src='./film.js?v=20260816-center-canvas-2';
     script.dataset.filmRuntime='true';
     document.body.appendChild(script);
   };
