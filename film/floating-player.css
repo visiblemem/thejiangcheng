@@ -8,17 +8,21 @@
   background:rgba(255,255,255,.86);
   opacity:0;
   pointer-events:none;
-  transition:opacity .38s cubic-bezier(.22,1,.36,1);
+  transition:opacity .30s cubic-bezier(.22,1,.36,1);
   cursor:pointer;
 }
+html.film-float-open .film-float-overlay,
 .film-float-overlay.is-open{
   opacity:1;
   pointer-events:auto;
 }
 .film-float-overlay.is-returning{
-  opacity:0;
+  opacity:1;
   pointer-events:none;
-  transition-duration:.34s;
+}
+.film-float-overlay.is-returning.is-return-fade{
+  opacity:0;
+  transition-duration:.17s;
   transition-timing-function:cubic-bezier(.4,0,.2,1);
 }
 .film-float-frame{
@@ -34,11 +38,12 @@
   backface-visibility:hidden;
   will-change:width,height,transform,box-shadow;
   transition:
-    width .50s cubic-bezier(.22,1,.36,1),
-    height .50s cubic-bezier(.22,1,.36,1),
-    transform .50s cubic-bezier(.22,1,.36,1),
-    box-shadow .50s cubic-bezier(.22,1,.36,1);
+    width .46s cubic-bezier(.22,1,.36,1),
+    height .46s cubic-bezier(.22,1,.36,1),
+    transform .46s cubic-bezier(.22,1,.36,1),
+    box-shadow .46s cubic-bezier(.22,1,.36,1);
 }
+html.film-float-open .film-float-frame.has-intrinsic-size,
 .film-float-overlay.is-open .film-float-frame.has-intrinsic-size{
   width:var(--float-native-w)!important;
   height:var(--float-native-h)!important;
@@ -48,7 +53,7 @@
 .film-float-overlay.is-returning .film-float-frame{
   transform:translateZ(0) scale(.985);
   box-shadow:0 4px 14px rgba(0,0,0,.05);
-  transition-duration:.38s;
+  transition-duration:.36s;
   transition-timing-function:cubic-bezier(.4,0,.2,1);
 }
 .film-float-video{
@@ -62,17 +67,18 @@
 @media(max-width:820px){
   .film-float-overlay{
     background:rgba(255,255,255,.9);
-    transition-duration:.32s;
+    transition-duration:.24s;
   }
-  .film-float-overlay.is-returning{transition-duration:.28s}
+  .film-float-overlay.is-returning.is-return-fade{transition-duration:.14s}
   .film-float-frame{
     box-shadow:0 4px 14px rgba(0,0,0,.06);
-    transition-duration:.42s;
+    transition-duration:.38s;
   }
+  html.film-float-open .film-float-frame.has-intrinsic-size,
   .film-float-overlay.is-open .film-float-frame.has-intrinsic-size{
     box-shadow:0 22px 58px rgba(0,0,0,.16);
   }
-  .film-float-overlay.is-returning .film-float-frame{transition-duration:.32s}
+  .film-float-overlay.is-returning .film-float-frame{transition-duration:.30s}
 }
 @media(prefers-reduced-motion:reduce){
   .film-float-overlay,.film-float-frame{transition:none!important}
