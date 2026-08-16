@@ -1,5 +1,9 @@
 (()=>{
   const bound=new WeakSet();
+  const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+  let passEscape=false;
+
+  const returnDuration=()=>innerWidth<=820?340:400;
 
   const applySize=video=>{
     if(!video?.videoWidth||!video?.videoHeight)return;
@@ -22,9 +26,36 @@
     frame.classList.add('has-intrinsic-size');
   };
 
+  const finishReturn=overlay=>{
+    if(!overlay?.isConnected)return;
+    passEscape=true;
+    window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+    passEscape=false;
+  };
+
+  const beginReturn=overlay=>{
+    if(!overlay||overlay.classList.contains('is-returning'))return;
+    const frame=overlay.querySelector('.film-float-frame');
+    const video=overlay.querySelector('.film-float-video');
+
+    video?.pause();
+    overlay.classList.add('is-returning');
+    overlay.classList.remove('is-open');
+    frame?.classList.add('is-returning');
+    document.documentElement.classList.remove('film-float-open');
+
+    if(reducedMotion.matches){
+      finishReturn(overlay);
+      return;
+    }
+
+    setTimeout(()=>finishReturn(overlay),returnDuration());
+  };
+
   const bind=video=>{
     if(!video||bound.has(video))return;
     bound.add(video);
+
     ['loadedmetadata','loadeddata','canplay','playing'].forEach(type=>{
       video.addEventListener(type,()=>applySize(video));
     });
@@ -46,6 +77,27 @@
     }
   });
   observer.observe(document.body,{childList:true,subtree:true});
+
+  document.addEventListener('click',event=>{
+    const overlay=event.target instanceof Element
+      ? event.target.closest('.film-float-overlay')
+      : null;
+    if(!overlay||event.target!==overlay)return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    beginReturn(overlay);
+  },true);
+
+  addEventListener('keydown',event=>{
+    if(passEscape||event.key!=='Escape')return;
+    const overlay=document.querySelector('.film-float-overlay.is-open');
+    if(!overlay)return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    beginReturn(overlay);
+  },true);
 
   const resize=()=>document.querySelectorAll('.film-float-video').forEach(applySize);
   addEventListener('resize',resize,{passive:true});
