@@ -8,6 +8,8 @@
   const metaDuration=meta?.querySelector('.hover-duration');
   if(!viewport||!world)return;
 
+  const initialWork=new URLSearchParams(location.search).get('work');
+
   fetch('./film-sprite.txt')
     .then(r=>r.ok?r.text():Promise.reject())
     .then(data=>document.documentElement.style.setProperty('--film-sprite',`url("data:image/webp;base64,${data.replace(/\s/g,'')}")`))
@@ -84,6 +86,159 @@
   const cloneRecordFor=el=>clones.find(item=>item.el===el)||null;
   const sourceForElement=el=>cloneRecordFor(el)?.source||el;
 
+  const parseJson=(value,fallback=[])=>{
+    try{
+      const parsed=JSON.parse(value||'');
+      return parsed??fallback;
+    }catch(_){return fallback;}
+  };
+
+  const fallbackDescription=source=>{
+    const title=source.dataset.title||'這支作品';
+    return `「${title}」保留了一段沒有被完整說明的時間。影像更在意人物、空間與停頓之間的關係，讓觀看本身慢慢形成故事。`;
+  };
+
+  const shareUrlFor=source=>{
+    const url=new URL(location.href);
+    url.hash='';
+    url.searchParams.set('work',source.dataset.slug||source.dataset.index||'film');
+    return url.toString();
+  };
+
+  const setWorkUrl=source=>{
+    const url=new URL(location.href);
+    url.hash='';
+    url.searchParams.set('work',source.dataset.slug||source.dataset.index||'film');
+    history.replaceState(history.state,'',url);
+  };
+
+  const clearWorkUrl=()=>{
+    const url=new URL(location.href);
+    if(!url.searchParams.has('work'))return;
+    url.searchParams.delete('work');
+    history.replaceState(history.state,'',url);
+  };
+
+  const copyText=async text=>{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+    const input=document.createElement('textarea');
+    input.value=text;
+    input.setAttribute('readonly','');
+    input.style.position='fixed';
+    input.style.opacity='0';
+    document.body.appendChild(input);
+    input.select();
+    const ok=document.execCommand?.('copy');
+    input.remove();
+    return Boolean(ok);
+  };
+
+  const createDetailPanel=source=>{
+    const panel=document.createElement('section');
+    panel.className='film-detail-panel';
+    panel.setAttribute('aria-label','作品資訊');
+
+    const code=source.dataset.code||'FILM';
+    const title=source.dataset.title||'Untitled';
+    const year=source.dataset.year||'2026';
+    const description=source.dataset.description||fallbackDescription(source);
+    const credits=parseJson(source.dataset.credits,[]);
+    const links=parseJson(source.dataset.links,[]);
+
+    const eyebrow=document.createElement('div');
+    eyebrow.className='film-detail-eyebrow';
+    const codeEl=document.createElement('span');
+    codeEl.textContent=code;
+    const yearEl=document.createElement('span');
+    yearEl.textContent=year;
+    eyebrow.append(codeEl,yearEl);
+
+    const heading=document.createElement('h2');
+    heading.className='film-detail-title';
+    heading.textContent=title;
+
+    const descriptionEl=document.createElement('p');
+    descriptionEl.className='film-detail-description';
+    descriptionEl.textContent=description;
+
+    const scrollCue=document.createElement('div');
+    scrollCue.className='film-detail-scroll-cue';
+    scrollCue.textContent='WORK NOTES ↓';
+
+    const creditsWrap=document.createElement('div');
+    creditsWrap.className='film-detail-credits';
+    const creditItems=credits.length?credits:[
+      {label:'Direction',value:'Jiang Cheng'},
+      {label:'Format',value:source.dataset.category||'FILM'},
+      {label:'Year',value:year}
+    ];
+    creditItems.forEach(item=>{
+      const row=document.createElement('div');
+      row.className='film-detail-credit-row';
+      const label=document.createElement('span');
+      label.textContent=item?.label||'';
+      const value=document.createElement('strong');
+      value.textContent=item?.value||'';
+      row.append(label,value);
+      creditsWrap.appendChild(row);
+    });
+
+    const actions=document.createElement('div');
+    actions.className='film-detail-actions';
+
+    const share=document.createElement('button');
+    share.type='button';
+    share.textContent='SHARE';
+    share.addEventListener('click',async event=>{
+      event.preventDefault();event.stopPropagation();
+      const url=shareUrlFor(source);
+      if(navigator.share){
+        try{await navigator.share({title,url});return;}catch(error){if(error?.name==='AbortError')return;}
+      }
+      try{await copyText(url);share.textContent='LINK COPIED';setTimeout(()=>share.textContent='SHARE',1400);}catch(_){}
+    });
+
+    const copy=document.createElement('button');
+    copy.type='button';
+    copy.textContent='COPY LINK';
+    copy.addEventListener('click',async event=>{
+      event.preventDefault();event.stopPropagation();
+      try{await copyText(shareUrlFor(source));copy.textContent='COPIED';setTimeout(()=>copy.textContent='COPY LINK',1400);}catch(_){}
+    });
+
+    actions.append(share,copy);
+
+    const safeLinks=Array.isArray(links)?links.filter(link=>link?.href):[];
+    safeLinks.forEach(link=>{
+      const anchor=document.createElement('a');
+      anchor.href=link.href;
+      anchor.target='_blank';
+      anchor.rel='noopener noreferrer';
+      anchor.textContent=`${link.label||'EXTERNAL LINK'} ↗`;
+      anchor.addEventListener('click',event=>event.stopPropagation());
+      actions.appendChild(anchor);
+    });
+
+    const mediaUrl=source.dataset.mediaUrl||source.dataset.video||'';
+    if(mediaUrl&&!safeLinks.some(link=>link.href===mediaUrl)){
+      const mediaLink=document.createElement('a');
+      mediaLink.href=mediaUrl;
+      mediaLink.target='_blank';
+      mediaLink.rel='noopener noreferrer';
+      mediaLink.textContent='OPEN MEDIA ↗';
+      mediaLink.addEventListener('click',event=>event.stopPropagation());
+      actions.appendChild(mediaLink);
+    }
+
+    panel.append(scrollCue,eyebrow,heading,descriptionEl,creditsWrap,actions);
+    panel.addEventListener('click',event=>event.stopPropagation());
+    panel.addEventListener('pointerdown',event=>event.stopPropagation());
+    return panel;
+  };
+
   const removeFloatPlayer=()=>{
     const state=floatState;
     floatState=null;
@@ -97,10 +252,12 @@
   };
 
   const clearSelection=()=>{
+    const hadSelection=Boolean(selectedEl);
     removeFloatPlayer();
     if(selectedEl)selectedEl.classList.remove('is-selected');
     selectedEl=null;
     centerTween=null;
+    if(hadSelection)clearWorkUrl();
   };
 
   const easeOutCubic=t=>1-Math.pow(1-t,3);
@@ -144,6 +301,9 @@
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-label',`播放 ${source.dataset.title||'Film'}`);
 
+    const card=document.createElement('article');
+    card.className='film-detail-card';
+
     const frame=document.createElement('div');
     frame.className='film-float-frame';
     frame.style.width=`${Math.max(1,rect.width)}px`;
@@ -157,14 +317,16 @@
     video.src=src;
     if(source.dataset.poster)video.poster=source.dataset.poster;
 
+    const detail=createDetailPanel(source);
     const preview=el.querySelector('.film-zone-preview');
     const startTime=preview&&Number.isFinite(preview.currentTime)?preview.currentTime:0;
 
     frame.appendChild(video);
-    overlay.appendChild(frame);
+    card.append(frame,detail);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    floatState={overlay,frame,video,tile:el,open:false};
+    floatState={overlay,card,frame,video,detail,tile:el,open:false};
     document.documentElement.classList.add('film-float-preparing');
 
     overlay.addEventListener('click',event=>{
@@ -172,10 +334,11 @@
       event.preventDefault();
       clearSelection();
     });
-
-    frame.addEventListener('click',event=>event.stopPropagation());
+    card.addEventListener('click',event=>event.stopPropagation());
+    card.addEventListener('pointerdown',event=>event.stopPropagation());
 
     video.addEventListener('loadedmetadata',()=>{
+      card.classList.toggle('is-portrait',video.videoHeight>video.videoWidth);
       if(startTime>0){
         try{video.currentTime=startTime;}catch(_){}
       }
@@ -201,7 +364,7 @@
 
     document.documentElement.classList.remove('film-float-preparing');
     document.documentElement.classList.add('film-float-open');
-    requestAnimationFrame(()=>floatState?.overlay.classList.add('is-open'));
+    floatState.overlay.classList.add('is-open');
   };
 
   const selectTile=el=>{
@@ -211,6 +374,7 @@
     selectedEl=el;
     selectedEl.classList.add('is-selected');
     hideMeta();
+    setWorkUrl(sourceForElement(el));
 
     centerTile(el);
     prepareFloatPlayer(el);
@@ -458,4 +622,9 @@
 
   layout();
   requestAnimationFrame(tick);
+
+  if(initialWork){
+    const target=originals.find(tile=>tile.dataset.slug===initialWork);
+    if(target)setTimeout(()=>selectTile(target),80);
+  }
 })();
