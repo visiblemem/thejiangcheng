@@ -39,14 +39,14 @@ html.film-float-open .film-float-overlay,
 .film-float-frame.has-intrinsic-size{
   width:var(--float-native-w)!important;
   height:var(--float-native-h)!important;
-  transform:translate3d(0,0,0) scale(var(--float-start-sx,1),var(--float-start-sy,1));
+  transform:translate3d(0,0,0) scale(var(--float-start-scale,1));
 }
 .film-float-frame.is-flip-open{
-  transform:translate3d(0,0,0) scale(1,1);
+  transform:translate3d(0,0,0) scale(1);
   transition:transform .32s cubic-bezier(.16,1,.3,1);
 }
 .film-float-frame.is-flip-return{
-  transform:translate3d(0,0,0) scale(var(--float-start-sx,1),var(--float-start-sy,1));
+  transform:translate3d(0,0,0) scale(var(--float-start-scale,1));
   transition:transform .28s cubic-bezier(.4,0,.2,1);
 }
 .film-float-video{
