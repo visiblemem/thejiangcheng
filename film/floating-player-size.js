@@ -44,9 +44,6 @@
     if(!state){state={opened:false,returning:false,controlsTimer:null};states.set(video,state);}
     if(state.opened||state.returning)return;
 
-    // film.js has just put the frame at the centred tile's exact 5:4 size.
-    // Capture that once, then switch the element to its final intrinsic size
-    // without animating width/height. The visual size is preserved by FLIP scale.
     const tileW=Math.max(1,parseFloat(frame.style.width)||frame.getBoundingClientRect().width||1);
     const tileH=Math.max(1,parseFloat(frame.style.height)||frame.getBoundingClientRect().height||1);
     state.tileW=tileW;
@@ -54,19 +51,20 @@
     state.targetW=target.width;
     state.targetH=target.height;
 
-    const sx=tileW/target.width;
-    const sy=tileH/target.height;
+    // Use one uniform scale so the video can never be squeezed or stretched.
+    // The scaled video simply fits inside the centred 5:4 tile footprint,
+    // then the white overlay bridges the final hand-off back to the canvas tile.
+    const startScale=Math.min(tileW/target.width,tileH/target.height);
+    state.startScale=startScale;
+
     frame.style.setProperty('--float-native-w',`${target.width}px`);
     frame.style.setProperty('--float-native-h',`${target.height}px`);
-    frame.style.setProperty('--float-start-sx',String(sx));
-    frame.style.setProperty('--float-start-sy',String(sy));
+    frame.style.setProperty('--float-start-scale',String(startScale));
     frame.style.width=`${target.width}px`;
     frame.style.height=`${target.height}px`;
     frame.classList.add('has-intrinsic-size');
     frame.classList.remove('is-flip-open','is-flip-return');
 
-    // Force one style flush while the overlay is still at the tile-sized FLIP
-    // transform, then start the GPU-only scale in the same task. No extra RAF.
     frame.getBoundingClientRect();
     video.controls=false;
     frame.classList.add('is-flip-open');
@@ -145,8 +143,6 @@
   });
   domObserver.observe(document.body,{childList:true,subtree:true});
 
-  // film.js signals that centering is complete by adding film-float-open to <html>.
-  // Start the FLIP immediately in that same microtask, before the next paint.
   const stateObserver=new MutationObserver(()=>{
     if(!document.documentElement.classList.contains('film-float-open'))return;
     document.querySelectorAll('.film-float-video').forEach(startOpen);
@@ -179,15 +175,18 @@
       const target=measureTarget(video);
       const frame=video.closest('.film-float-frame');
       if(!target||!frame)return;
+
       state.targetW=target.width;
       state.targetH=target.height;
       frame.style.width=`${target.width}px`;
       frame.style.height=`${target.height}px`;
       frame.style.setProperty('--float-native-w',`${target.width}px`);
       frame.style.setProperty('--float-native-h',`${target.height}px`);
+
       if(state.tileW&&state.tileH){
-        frame.style.setProperty('--float-start-sx',String(state.tileW/target.width));
-        frame.style.setProperty('--float-start-sy',String(state.tileH/target.height));
+        const startScale=Math.min(state.tileW/target.width,state.tileH/target.height);
+        state.startScale=startScale;
+        frame.style.setProperty('--float-start-scale',String(startScale));
       }
     });
   };
