@@ -250,11 +250,10 @@
         const eased=easeOutCubic(progress);
         offsetX=centerTween.fromX+(centerTween.toX-centerTween.fromX)*eased;
         offsetY=centerTween.fromY+(centerTween.toY-centerTween.fromY)*eased;
-        if(progress>=1){
-          centerTween=null;
-          offsetX=wrapOffset(offsetX,packing.periodW);
-          offsetY=wrapOffset(offsetY,packing.periodH);
-        }
+        if(progress>=1)centerTween=null;
+      }else if(selectedEl){
+        velX=0;
+        velY=0;
       }else{
         offsetX+=velX;
         offsetY+=velY;
