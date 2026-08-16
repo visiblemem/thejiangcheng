@@ -5,8 +5,8 @@
   let passEscape=false;
 
   const timings=()=>innerWidth<=820
-    ? {open:270,shrink:240,fade:120}
-    : {open:320,shrink:280,fade:140};
+    ? {open:270,shrink:240,handoff:180,fade:120}
+    : {open:320,shrink:280,handoff:205,fade:140};
 
   const measureTarget=video=>{
     if(!video?.videoWidth||!video?.videoHeight)return null;
@@ -51,9 +51,6 @@
     state.targetW=target.width;
     state.targetH=target.height;
 
-    // Use one uniform scale so the video can never be squeezed or stretched.
-    // The scaled video simply fits inside the centred 5:4 tile footprint,
-    // then the white overlay bridges the final hand-off back to the canvas tile.
     const startScale=Math.min(tileW/target.width,tileH/target.height);
     state.startScale=startScale;
 
@@ -63,7 +60,7 @@
     frame.style.width=`${target.width}px`;
     frame.style.height=`${target.height}px`;
     frame.classList.add('has-intrinsic-size');
-    frame.classList.remove('is-flip-open','is-flip-return');
+    frame.classList.remove('is-flip-open','is-flip-return','is-handoff');
 
     frame.getBoundingClientRect();
     video.controls=false;
@@ -100,7 +97,7 @@
     overlay.classList.add('is-returning');
     overlay.classList.remove('is-open');
     document.documentElement.classList.remove('film-float-open');
-    frame.classList.remove('is-flip-open');
+    frame.classList.remove('is-flip-open','is-handoff');
     frame.classList.add('is-flip-return');
 
     if(reducedMotion.matches){
@@ -109,9 +106,18 @@
     }
 
     const t=timings();
+
+    // Before the intrinsic-ratio video reaches the 5:4 tile footprint,
+    // fade the floating frame out briefly. The original canvas poster remains
+    // underneath, so the hand-off is seamless without ever squeezing a frame.
+    setTimeout(()=>{
+      if(overlay.isConnected)frame.classList.add('is-handoff');
+    },t.handoff);
+
     setTimeout(()=>{
       if(overlay.isConnected)overlay.classList.add('is-return-fade');
     },t.shrink);
+
     setTimeout(()=>finishReturn(overlay),t.shrink+t.fade+25);
   };
 
