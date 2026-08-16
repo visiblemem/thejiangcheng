@@ -1,0 +1,31 @@
+:root{
+  --film-bg:#fff;
+  --film-ink:#111;
+  --film-muted:rgba(17,17,17,.48);
+}
+html,body,body.film-experience,.film-canvas-page,.film-viewport,.film-world{
+  background:#fff!important;
+}
+.film-experience .site-nav,
+.film-experience .site-nav a,
+.film-experience .site-nav button,
+.film-canvas-label,
+.film-hover-meta,
+.film-hover-meta .hover-title{
+  color:#111!important;
+}
+.film-canvas-label small,
+.film-hover-meta .hover-code,
+.film-hover-meta .hover-duration{
+  color:rgba(17,17,17,.48)!important;
+}
+.film-canvas-hint{
+  color:rgba(17,17,17,.35)!important;
+}
+.film-tile{
+  background:#fff!important;
+}
+.film-tile.is-remote:not(.has-poster) .film-still{
+  background:#f3f3f1!important;
+}
+.film-experience .noise{mix-blend-mode:multiply;opacity:.012}
