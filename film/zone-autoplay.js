@@ -96,8 +96,7 @@
 
     if(
       document.hidden||
-      expanded?.classList.contains('is-open')||
-      world.querySelector('.film-tile.is-selected')
+      expanded?.classList.contains('is-open')
     ){
       pauseAll();
       return;
@@ -108,7 +107,6 @@
     const wantedToPlay=new Set();
 
     world.querySelectorAll('.film-tile[data-video]').forEach(tile=>{
-      if(tile.querySelector('.film-inline-video'))return;
       const rect=tile.getBoundingClientRect();
       if(intersects(rect,zone))wantedToPlay.add(tile);
     });
