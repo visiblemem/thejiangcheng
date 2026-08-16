@@ -1,0 +1,17 @@
+.film-tile.is-center-only{
+  transform:translate3d(50vw,50vh,0) translate(-50%,-50%)!important;
+  translate:0 0!important;
+  z-index:80!important;
+  transition:transform .42s cubic-bezier(.22,.78,.18,1),opacity .2s ease!important;
+}
+.film-tile.is-center-only::after{
+  border-color:rgba(0,0,0,.16)!important;
+}
+@media(max-width:820px){
+  .film-tile.is-center-only{
+    transition:transform .32s cubic-bezier(.22,.78,.18,1),opacity .18s ease!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .film-tile.is-center-only{transition:none!important}
+}
