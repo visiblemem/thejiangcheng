@@ -6,7 +6,7 @@
   const startFilm=()=>{
     if(document.querySelector('script[data-film-runtime]'))return;
     const script=document.createElement('script');
-    script.src='./film.js?v=20260816-float-focus-1';
+    script.src='./film.js?v=20260816-film-card-1';
     script.dataset.filmRuntime='true';
     document.body.appendChild(script);
   };
@@ -30,6 +30,13 @@
     tile.dataset.title=item.title||'Untitled';
     tile.dataset.code=item.code||'';
     tile.dataset.duration=item.duration||'';
+    tile.dataset.slug=item.slug||`film-${index+1}`;
+    tile.dataset.year=String(item.year||'2026');
+    tile.dataset.description=item.description||'';
+    tile.dataset.credits=JSON.stringify(Array.isArray(item.credits)?item.credits:[]);
+    tile.dataset.links=JSON.stringify(Array.isArray(item.links)?item.links:[]);
+    tile.dataset.mediaUrl=item.url||'';
+    if(item.contentKey)tile.dataset.contentKey=item.contentKey;
     if(item.category)tile.dataset.category=item.category;
 
     if(kind==='image')tile.dataset.image=item.url||'';
