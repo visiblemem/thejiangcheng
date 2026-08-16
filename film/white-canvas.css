@@ -25,6 +25,12 @@ html,body,body.film-experience,.film-canvas-page,.film-viewport,.film-world{
 .film-tile{
   background:#fff!important;
 }
+.film-tile.is-selected{
+  translate:0 0!important;
+}
+.film-tile.is-selected::after{
+  border-color:rgba(0,0,0,.16)!important;
+}
 .film-tile.is-remote:not(.has-poster) .film-still{
   background:#f3f3f1!important;
 }
