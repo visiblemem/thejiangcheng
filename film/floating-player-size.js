@@ -13,8 +13,22 @@
     const vw=Math.max(1,window.visualViewport?.width||innerWidth);
     const vh=Math.max(1,window.visualViewport?.height||innerHeight);
     const mobile=vw<=820;
-    const maxW=vw*(mobile?.90:.92);
-    const maxH=vh*(mobile?.76:.84);
+    const portrait=video.videoHeight>video.videoWidth;
+    const inCard=Boolean(video.closest('.film-detail-card'));
+
+    let maxW=vw*(mobile?.90:.92);
+    let maxH=vh*(mobile?.76:.84);
+
+    if(inCard){
+      if(portrait){
+        maxW=vw*(mobile?.72:.52);
+        maxH=vh*(mobile?.64:.78);
+      }else{
+        maxW=vw*(mobile?.90:.76);
+        maxH=vh*(mobile?.46:.52);
+      }
+    }
+
     const scale=Math.min(1,maxW/video.videoWidth,maxH/video.videoHeight);
     return {
       width:Math.max(1,Math.round(video.videoWidth*scale)),
@@ -106,18 +120,12 @@
     }
 
     const t=timings();
-
-    // Before the intrinsic-ratio video reaches the 5:4 tile footprint,
-    // fade the floating frame out briefly. The original canvas poster remains
-    // underneath, so the hand-off is seamless without ever squeezing a frame.
     setTimeout(()=>{
       if(overlay.isConnected)frame.classList.add('is-handoff');
     },t.handoff);
-
     setTimeout(()=>{
       if(overlay.isConnected)overlay.classList.add('is-return-fade');
     },t.shrink);
-
     setTimeout(()=>finishReturn(overlay),t.shrink+t.fade+25);
   };
 
